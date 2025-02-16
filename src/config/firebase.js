@@ -7,14 +7,14 @@ import { toast } from "react-toastify";
 
 // Firebase configuration for the new project
 const firebaseConfig = {
-    apiKey: "AIzaSyC20XR5oNmBYDnVjITGcMhhdToKdEEGj2M",
-    authDomain: "convo2-2.firebaseapp.com",
-    projectId: "convo2-2",
-    storageBucket: "convo2-2.firebasestorage.app",
-    messagingSenderId: "110954263927",
-    appId: "1:110954263927:web:e9b2b823db93d9cc4c1d72",
-    measurementId: "G-S5P5HDC0QS"
-};
+    apiKey: "AIzaSyAZgdj0JzehF7mOI24gxOxxYJ0LTa7mAWE",
+    authDomain: "nex-1-chat.firebaseapp.com",
+    projectId: "nex-1-chat",
+    storageBucket: "nex-1-chat.firebasestorage.app",
+    messagingSenderId: "750888535381",
+    appId: "1:750888535381:web:9b88d8845ced6580e99bdc",
+    measurementId: "G-2RWT059X1P"
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
