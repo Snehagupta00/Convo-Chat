@@ -9,17 +9,12 @@ import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 const Chat = () => {
     const { chatData, userData } = useContext(AppContext);
     const [loading, setLoading] = useState(true);
-    const [selectedChat, setSelectedChat] = useState(null);
 
     useEffect(() => {
         if (chatData && userData) {
             setLoading(false);
         }
     }, [chatData, userData]);
-
-    const handleChatSelect = (chat) => {
-        setSelectedChat(chat);
-    };
 
     if (loading) {
         return (
@@ -32,9 +27,9 @@ const Chat = () => {
     return (
         <div className='chat'>
             <div className='chat-container'>
-                <LeftSidebar onChatSelect={handleChatSelect} />
-                {selectedChat ? <ChatBox chat={selectedChat} /> : null}
-                {selectedChat && <RightSidebar chat={selectedChat} />}
+                <LeftSidebar />
+                <ChatBox />
+                <RightSidebar />
             </div>
         </div>
     );
