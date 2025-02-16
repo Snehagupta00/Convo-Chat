@@ -8,16 +8,16 @@ import { toast } from 'react-toastify';
 import EmojiPicker from 'emoji-picker-react';
 
 const ChatBox = () => {
-    const { 
-        userData, 
-        chatUser, 
-        messagesId, 
-        messages, 
-        setMessages, 
-        chatVisible, 
-        setChatVisible 
+    const {
+        userData,
+        chatUser,
+        messagesId,
+        messages,
+        setMessages,
+        chatVisible,
+        setChatVisible
     } = useContext(AppContext);
-    
+
     const [input, setInput] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
@@ -62,9 +62,9 @@ const ChatBox = () => {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        
+
         if (!input.trim() && !isUploading) return;
-        
+
         try {
             await sendMessage(input.trim(), messagesId, userData.id);
             await updateLastMessage(input.trim(), messagesId, userData.id, chatUser.rId);
@@ -88,15 +88,15 @@ const ChatBox = () => {
         <div className={`chatbox ${chatVisible ? "" : "hidden"}`}>
             <div className="chatbox__header">
                 <div className="chatbox__user-info">
-                    <img 
-                        src={assets.back_arrow} 
-                        alt="Back" 
+                    <img
+                        src={assets.back_arrow}
+                        alt="Back"
                         className="chatbox__back-btn"
-                        onClick={() => setChatVisible(false)} 
+                        onClick={() => setChatVisible(false)}
                     />
-                    <img 
-                        src={chatUser.userData?.avatar || assets.avatar_placeholder} 
-                        alt={chatUser.userData?.name} 
+                    <img
+                        src={chatUser.userData?.avatar || assets.avatar_placeholder}
+                        alt={chatUser.userData?.name}
                         className="chatbox__user-avatar"
                     />
                     <div>
@@ -116,17 +116,17 @@ const ChatBox = () => {
 
             <div className="chatbox__messages" ref={chatContainerRef}>
                 {messages.map((msg, index) => (
-                    <div 
-                        key={index} 
+                    <div
+                        key={index}
                         className={`chatbox__message ${
                             msg.sId === userData.id ? 'sent' : 'received'
                         }`}
                     >
                         {msg.image ? (
                             <div className="chatbox__image-message">
-                                <img 
-                                    src={msg.image} 
-                                    alt="Shared" 
+                                <img
+                                    src={msg.image}
+                                    alt="Shared"
                                     onClick={() => window.open(msg.image, '_blank')}
                                 />
                                 <span className="chatbox__message-time">
@@ -147,9 +147,9 @@ const ChatBox = () => {
 
             <form className="chatbox__input-area" onSubmit={handleSendMessage}>
                 <div className="chatbox__input-container">
-                    <img 
-                        src={assets.emoji_icon} 
-                        alt="Emoji" 
+                    <img
+                        src={assets.emoji_icon}
+                        alt="Emoji"
                         onClick={() => setShowEmoji(!showEmoji)}
                     />
                     <input
@@ -169,8 +169,8 @@ const ChatBox = () => {
                         <img src={assets.attachment_icon} alt="Attach" />
                     </label>
                 </div>
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     disabled={!input.trim() && !isUploading}
                     className="chatbox__send-btn"
                 >

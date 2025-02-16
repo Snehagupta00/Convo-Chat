@@ -5,23 +5,25 @@ import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../context/AppContext";
 import { debounce } from "../../utils/helpers";
 import { searchUsers, addNewChat } from "../../services/chatService";
+import { formatTime } from "../../utils/helpers";
 import { toast } from "react-toastify";
 
 const LeftSidebar = () => {
     const navigate = useNavigate();
-    const { 
-        userData, 
-        chatData, 
-        chatUser, 
-        setChatUser, 
-        setMessagesId, 
-        messageId, 
-        chatVisible, 
-        setChatVisible 
+    const {
+        userData,
+        chatData,
+        chatUser,
+        setChatUser,
+        setMessagesId,
+        messageId,
+        chatVisible,
+        setChatVisible
     } = useContext(AppContext);
 
     const [searchResults, setSearchResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
+    const [loadingChat, setLoadingChat] = useState(null);
 
     const debouncedSearch = useCallback(
         debounce(async (input) => {
@@ -34,6 +36,7 @@ const LeftSidebar = () => {
                 const results = await searchUsers(input, userData?.id);
                 setSearchResults(results);
             } catch (error) {
+                console.error("Search error:", error);
                 toast.error("Search failed. Please try again.");
             } finally {
                 setIsSearching(false);
@@ -48,24 +51,50 @@ const LeftSidebar = () => {
     };
 
     const handleAddChat = async (selectedUser) => {
+        if (loadingChat) return; // Prevent multiple clicks
+
         try {
-            await addNewChat(userData, selectedUser);
+            setLoadingChat(selectedUser.id);
+            const newChat = await addNewChat(userData, selectedUser);
             setSearchResults(null);
+            setChatUser(newChat);
+            setMessagesId(newChat.messageId);
+            setChatVisible(true);
             toast.success("Chat started successfully!");
         } catch (error) {
+            console.error("Chat creation error:", error);
             toast.error("Failed to start chat. Please try again.");
+        } finally {
+            setLoadingChat(null);
         }
+    };
+
+    const handleChatSelect = (chat) => {
+        setMessagesId(chat.messageId);
+        setChatUser(chat);
+        setChatVisible(true);
+    };
+
+    const handleImageError = (e) => {
+        e.target.src = assets.avatar_placeholder;
     };
 
     return (
         <div className={`left-sidebar ${chatVisible ? "hidden" : ""}`}>
             <div className="left-sidebar__header">
-                <img 
-                    src={userData?.avatar || assets.avatar_placeholder} 
-                    alt="Profile" 
-                    className="left-sidebar__profile-pic"
-                    onClick={() => navigate("/profile")}
-                />
+                <div className="left-sidebar__profile">
+                    <img
+                        src={userData?.avatar || assets.avatar_placeholder}
+                        alt="Profile"
+                        className="left-sidebar__profile-pic"
+                        onClick={() => navigate("/profile")}
+                        onError={handleImageError}
+                    />
+                    <div className="left-sidebar__profile-info">
+                        <h3>{userData?.name}</h3>
+                        <span>{userData?.status || "Online"}</span>
+                    </div>
+                </div>
                 <div className="left-sidebar__search">
                     <input
                         type="text"
@@ -73,7 +102,11 @@ const LeftSidebar = () => {
                         onChange={handleSearch}
                         className="left-sidebar__search-input"
                     />
-                    {isSearching && <div className="left-sidebar__search-loading" />}
+                    {isSearching && (
+                        <div className="left-sidebar__search-loading">
+                            <div className="spinner"></div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -82,20 +115,32 @@ const LeftSidebar = () => {
                     <div className="left-sidebar__search-results">
                         {searchResults.length > 0 ? (
                             searchResults.map((user) => (
-                                <div 
+                                <div
                                     key={user.id}
-                                    className="left-sidebar__search-item"
+                                    className={`left-sidebar__search-item ${loadingChat === user.id ? 'loading' : ''
+                                        }`}
                                     onClick={() => handleAddChat(user)}
                                 >
-                                    <img src={user.avatar} alt={user.name} />
-                                    <div>
+                                    <img
+                                        src={user.avatar}
+                                        alt={user.name}
+                                        onError={handleImageError}
+                                        className="left-sidebar__user-avatar"
+                                    />
+                                    <div className="left-sidebar__user-info">
                                         <h4>{user.name}</h4>
                                         <p>{user.username}</p>
                                     </div>
+                                    {loadingChat === user.id && (
+                                        <div className="left-sidebar__loading-indicator" />
+                                    )}
                                 </div>
                             ))
                         ) : (
-                            <p className="left-sidebar__no-results">No users found</p>
+                            <div className="left-sidebar__no-results">
+                                <p>No users found</p>
+                                <span>Try a different search term</span>
+                            </div>
                         )}
                     </div>
                 ) : (
@@ -104,35 +149,41 @@ const LeftSidebar = () => {
                             chatData.map((chat) => (
                                 <div
                                     key={chat.messageId}
-                                    className={`left-sidebar__chat-item ${
-                                        chat.messageId === messageId ? "active" : ""
-                                    } ${!chat.messageSeen ? "unread" : ""}`}
-                                    onClick={() => {
-                                        setMessagesId(chat.messageId);
-                                        setChatUser(chat);
-                                        setChatVisible(true);
-                                    }}
+                                    className={`left-sidebar__chat-item ${chat.messageId === messageId ? "active" : ""
+                                        } ${!chat.messageSeen ? "unread" : ""}`}
+                                    onClick={() => handleChatSelect(chat)}
                                 >
-                                    <img 
-                                        src={chat.userData?.avatar || assets.avatar_placeholder} 
-                                        alt={chat.userData?.name} 
+                                    <img
+                                        src={chat.userData?.avatar || assets.avatar_placeholder}
+                                        alt={chat.userData?.name}
+                                        onError={handleImageError}
+                                        className="left-sidebar__chat-avatar"
                                     />
                                     <div className="left-sidebar__chat-info">
                                         <h4>{chat.userData?.name}</h4>
-                                        {chat.lastMessage && (
-                                            <p>{chat.lastMessage}</p>
-                                        )}
+                                        <div className="left-sidebar__message-preview">
+                                            {chat.lastMessage && (
+                                                <p>{chat.lastMessage}</p>
+                                            )}
+                                        </div>
                                     </div>
                                     {chat.lastMessageTime && (
                                         <span className="left-sidebar__chat-time">
                                             {formatTime(chat.lastMessageTime)}
                                         </span>
                                     )}
+                                    {!chat.messageSeen && (
+                                        <div className="left-sidebar__unread-indicator" />
+                                    )}
                                 </div>
                             ))
                         ) : (
                             <div className="left-sidebar__empty">
-                                <img src={assets.empty_chat} alt="No chats" />
+                                <img
+                                    src={assets.empty_chat}
+                                    alt="No chats"
+                                    className="left-sidebar__empty-icon"
+                                />
                                 <p>No chats yet</p>
                                 <span>Search for users to start chatting</span>
                             </div>

@@ -1,19 +1,20 @@
-import React, { useContext, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import Login from './pages/Login/Login';
 import Chat from './pages/Chat/Chat';
 import ProfileUpdate from './pages/ProfileUpdate/ProfileUpdate';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config/firebase';
 import { AppContext } from './context/AppContext';
-import ImageViewer from '../src/components/ImageViewer/ImageViewer';
-
+import ImageViewer from './components/ImageViewer/ImageViewer';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 const App = () => {
     const navigate = useNavigate();
-    const { setUserData } = useContext(AppContext);
+    const { setUserData, userData } = useContext(AppContext);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -25,18 +26,18 @@ const App = () => {
                     if (userSnap.exists()) {
                         const userInfo = userSnap.data();
                         setUserData(userInfo);
-
                         if (userInfo.avatar && userInfo.name) {
                             navigate('/chat');
                         } else {
                             navigate('/profile');
                         }
                     } else {
-                        setUserData({ uid: user.uid });
+                        setUserData({ id: user.uid });
                         navigate('/profile');
                     }
                 } catch (error) {
                     console.error("Error loading user data:", error);
+                    setUserData(null);
                     navigate('/');
                 }
             } else {
@@ -47,15 +48,63 @@ const App = () => {
 
         return () => unsubscribe();
     }, [navigate, setUserData]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => setIsLoading(false), 1000);
+        return () => clearTimeout(timeout);
+    }, []);
+
+    if (isLoading) {
+        return <div className="loading">Loading...</div>;
+    }
 
     return (
         <>
-            <ToastContainer />
+            <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+            />
             <Routes>
-                <Route path='/' element={<Login />} />
-                <Route path='/chat' element={<Chat />} />
-                <Route path='/profile' element={<ProfileUpdate />} />
-                <Route path='/image-viewer' element={<ImageViewer />} />
+                <Route
+                    path="/"
+                    element={
+                        userData ? <Navigate to="/chat" replace /> : <Login />
+                    }
+                />
+                <Route
+                    path="/chat"
+                    element={
+                        <ProtectedRoute>
+                            <Chat />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute>
+                            <ProfileUpdate />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/image-viewer"
+                    element={
+                        <ProtectedRoute>
+                            <ImageViewer />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>
     );
