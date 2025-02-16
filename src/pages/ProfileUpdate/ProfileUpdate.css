@@ -1,4 +1,4 @@
-/* Use a specific class prefix to prevent style leaking */
+
 .profile-update {
     min-height: 100vh;
     display: flex;

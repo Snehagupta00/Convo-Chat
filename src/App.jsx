@@ -8,6 +8,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config/firebase';
 import { AppContext } from './context/AppContext';
+import ImageViewer from '../src/components/ImageViewer/ImageViewer';
+
 
 const App = () => {
     const navigate = useNavigate();
@@ -53,6 +55,7 @@ const App = () => {
                 <Route path='/' element={<Login />} />
                 <Route path='/chat' element={<Chat />} />
                 <Route path='/profile' element={<ProfileUpdate />} />
+                <Route path='/image-viewer' element={<ImageViewer />} />
             </Routes>
         </>
     );

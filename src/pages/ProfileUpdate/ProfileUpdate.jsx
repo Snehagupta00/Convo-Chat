@@ -59,15 +59,14 @@ const ProfileUpdate = () => {
                 bio: bio.trim(),
                 avatar: imgUrl,
                 updatedAt: new Date().toISOString(),
-                isProfileComplete: true  // Add this flag
+                isProfileComplete: true
             });
 
             setPrevImage(imgUrl);
             toast.success("Profile updated successfully!");
             
-            // Add a small delay before navigation to ensure the toast is visible
             setTimeout(() => {
-                navigate('/chat');  // Navigate to chat page after successful update
+                navigate('/chat');
             }, 1000);
 
         } catch (error) {
@@ -89,7 +88,6 @@ const ProfileUpdate = () => {
                 setBio(userData?.bio || '');
                 setPrevImage(userData?.avatar || '');
                 
-                // If profile is already complete, redirect to chat
                 if (userData?.isProfileComplete) {
                     navigate('/chat');
                 }
@@ -116,12 +114,10 @@ const ProfileUpdate = () => {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Validate file type
             if (!file.type.match('image.*')) {
                 toast.error('Please upload an image file');
                 return;
             }
-            // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 toast.error('Image size should be less than 5MB');
                 return;
@@ -135,11 +131,12 @@ const ProfileUpdate = () => {
     };
 
     return (
-        <div className='profile'>
-            <div className="profile-container">
-                <form onSubmit={handleProfileUpdate}>
-                    <h3>Profile Details</h3>
-                    <label htmlFor="avatar" className="avatar-label">
+        <div className='profile-update'>
+            <div className="profile-update__container">
+                <form onSubmit={handleProfileUpdate} className="profile-update__form">
+                    <h3 className="profile-update__title">Profile Details</h3>
+                    
+                    <label htmlFor="avatar" className="profile-update__avatar-label">
                         <input
                             type="file"
                             id="avatar"
@@ -152,10 +149,11 @@ const ProfileUpdate = () => {
                             src={image ? URL.createObjectURL(image) : prevImage || assets.avatar_icon}
                             alt="avatar"
                             onError={handleImageError}
-                            className="avatar-preview"
+                            className="profile-update__avatar-preview"
                         />
-                        <span>Upload Profile Picture</span>
+                        <span className="profile-update__avatar-text">Upload Profile Picture</span>
                     </label>
+
                     <textarea
                         onChange={(e) => setBio(e.target.value)}
                         value={bio}
@@ -163,7 +161,9 @@ const ProfileUpdate = () => {
                         required
                         maxLength={500}
                         disabled={isLoading}
+                        className="profile-update__textarea"
                     ></textarea>
+
                     <input
                         onChange={(e) => setName(e.target.value)}
                         value={name}
@@ -172,13 +172,20 @@ const ProfileUpdate = () => {
                         required
                         maxLength={100}
                         disabled={isLoading}
+                        className="profile-update__input"
                     />
-                    <button type="submit" disabled={isLoading}>
+
+                    <button 
+                        type="submit" 
+                        disabled={isLoading}
+                        className="profile-update__button"
+                    >
                         {isLoading ? 'Saving...' : 'Save'}
                     </button>
                 </form>
+
                 <img
-                    className='profilepic'
+                    className="profile-update__preview"
                     src={image ? URL.createObjectURL(image) : prevImage || assets.logo_icon}
                     alt="Profile preview"
                     onError={handleImageError}
