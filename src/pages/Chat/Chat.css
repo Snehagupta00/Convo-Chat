@@ -40,16 +40,4 @@
         border-radius: 0;
         grid-template-columns: 1fr;
     }
-
-    .left-sidebar, .chat-box, .right-sidebar {
-        display: none;
-    }
-
-    .left-sidebar {
-        display: block;
-    }
-
-    .chat-box.active {
-        display: block;
-    }
 }
