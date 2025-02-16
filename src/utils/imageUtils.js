@@ -1,94 +1,41 @@
 /**
- * Compresses and resizes an image file
- * @param {File} file - The image file to compress
- * @param {Object} options - Compression options
- * @returns {Promise<string>} - Returns a base64 data URL of the compressed image
+ * Image Processing Utility Functions
+ * Handles image compression, validation, thumbnails, and transformations
  */
-export const compressImage = async (file, options = {}) => {
-    const {
-        maxWidth = 1200,
-        maxHeight = 1200,
-        quality = 0.8,
-        maxSizeKB = 500
-    } = options;
 
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-
-            img.onload = () => {
-                // Calculate new dimensions while maintaining aspect ratio
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = Math.round((width * maxHeight) / height);
-                        height = maxHeight;
-                    }
-                }
-
-                // Create canvas for compression
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                // Draw and compress image
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#FFFFFF'; // Set white background
-                ctx.fillRect(0, 0, width, height);
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // First compression attempt
-                let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-                // Check if size is still too large
-                let currentSize = getBase64Size(compressedDataUrl);
-
-                // Further compress if needed
-                if (currentSize > maxSizeKB * 1024) {
-                    let adjustedQuality = quality;
-                    while (currentSize > maxSizeKB * 1024 && adjustedQuality > 0.1) {
-                        adjustedQuality -= 0.1;
-                        compressedDataUrl = canvas.toDataURL('image/jpeg', adjustedQuality);
-                        currentSize = getBase64Size(compressedDataUrl);
-                    }
-                }
-
-                resolve(compressedDataUrl);
-            };
-
-            img.onerror = (error) => {
-                reject(new Error('Failed to load image'));
-            };
-        };
-
-        reader.onerror = (error) => {
-            reject(new Error('Failed to read file'));
-        };
-    });
+// Constants for image processing
+const IMAGE_CONSTANTS = {
+    ACCEPTED_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB in bytes
+    DEFAULT_QUALITY: 0.8,
+    MIN_QUALITY: 0.1,
+    COMPRESSION_STEPS: 0.1,
+    DEFAULTS: {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+        maxSizeKB: 500,
+        thumbnailSize: 100,
+        thumbnailQuality: 0.6
+    },
+    MIME_TYPES: {
+        JPEG: 'image/jpeg',
+        PNG: 'image/png',
+        GIF: 'image/gif',
+        WEBP: 'image/webp'
+    }
 };
 
 /**
- * Calculates the size of a base64 string in bytes
- * @param {string} base64String - The base64 string to check
- * @returns {number} - Size in bytes
+ * Error class for image processing errors
  */
-const getBase64Size = (base64String) => {
-    const padding = base64String.endsWith('==') ? 2 :
-        base64String.endsWith('=') ? 1 : 0;
-    const base64Length = base64String.substr(base64String.indexOf(',') + 1).length;
-    return (base64Length * 0.75) - padding;
-};
+class ImageProcessingError extends Error {
+    constructor(message, code) {
+        super(message);
+        this.name = 'ImageProcessingError';
+        this.code = code;
+    }
+}
 
 /**
  * Validates if a file is an acceptable image
@@ -96,151 +43,273 @@ const getBase64Size = (base64String) => {
  * @returns {boolean} - Whether the file is valid
  */
 export const isValidImageFile = (file) => {
-    const acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    return file && acceptedTypes.includes(file.type);
+    if (!file) return false;
+
+    return (
+        IMAGE_CONSTANTS.ACCEPTED_TYPES.includes(file.type) &&
+        file.size <= IMAGE_CONSTANTS.MAX_FILE_SIZE
+    );
+};
+
+/**
+ * Reads a file as Data URL
+ * @param {File} file - The file to read
+ * @returns {Promise<string>} - Data URL
+ */
+const readFileAsDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => reject(new ImageProcessingError('Failed to read file', 'READ_ERROR'));
+        reader.readAsDataURL(file);
+    });
+};
+
+/**
+ * Loads an image from a source
+ * @param {string} src - Image source
+ * @returns {Promise<HTMLImageElement>} - Loaded image
+ */
+const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new ImageProcessingError('Failed to load image', 'LOAD_ERROR'));
+        img.src = src;
+    });
+};
+
+/**
+ * Calculates new dimensions maintaining aspect ratio
+ * @param {Object} params - Parameters for calculation
+ * @returns {Object} - New dimensions
+ */
+const calculateDimensions = ({ width, height, maxWidth, maxHeight }) => {
+    let newWidth = width;
+    let newHeight = height;
+
+    const aspectRatio = width / height;
+
+    if (width > maxWidth) {
+        newWidth = maxWidth;
+        newHeight = Math.round(maxWidth / aspectRatio);
+    }
+
+    if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newWidth = Math.round(maxHeight * aspectRatio);
+    }
+
+    return { width: newWidth, height: newHeight };
+};
+
+/**
+ * Creates a canvas with given dimensions
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @returns {Object} - Canvas and context
+ */
+const createCanvas = (width, height) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    return { canvas, ctx };
+};
+
+/**
+ * Calculates the size of a base64 string in bytes
+ * @param {string} base64String - The base64 string
+ * @returns {number} - Size in bytes
+ */
+const getBase64Size = (base64String) => {
+    const base64Length = base64String.substring(base64String.indexOf(',') + 1).length;
+    return Math.floor(base64Length * 0.75);
+};
+
+/**
+ * Compresses an image with quality adjustment
+ * @param {HTMLCanvasElement} canvas - Canvas element
+ * @param {number} initialQuality - Initial quality
+ * @param {number} maxSizeKB - Maximum size in KB
+ * @returns {string} - Compressed data URL
+ */
+const compressWithQuality = (canvas, initialQuality, maxSizeKB) => {
+    let quality = initialQuality;
+    let dataUrl = canvas.toDataURL(IMAGE_CONSTANTS.MIME_TYPES.JPEG, quality);
+    let size = getBase64Size(dataUrl);
+
+    while (size > maxSizeKB * 1024 && quality > IMAGE_CONSTANTS.MIN_QUALITY) {
+        quality -= IMAGE_CONSTANTS.COMPRESSION_STEPS;
+        dataUrl = canvas.toDataURL(IMAGE_CONSTANTS.MIME_TYPES.JPEG, quality);
+        size = getBase64Size(dataUrl);
+    }
+
+    return dataUrl;
+};
+
+/**
+ * Main function to compress and resize an image
+ * @param {File} file - The image file to compress
+ * @param {Object} options - Compression options
+ * @returns {Promise<string>} - Compressed image data URL
+ */
+export const compressImage = async (file, options = {}) => {
+    if (!isValidImageFile(file)) {
+        throw new ImageProcessingError('Invalid image file', 'INVALID_FILE');
+    }
+
+    const {
+        maxWidth = IMAGE_CONSTANTS.DEFAULTS.maxWidth,
+        maxHeight = IMAGE_CONSTANTS.DEFAULTS.maxHeight,
+        quality = IMAGE_CONSTANTS.DEFAULTS.quality,
+        maxSizeKB = IMAGE_CONSTANTS.DEFAULTS.maxSizeKB
+    } = options;
+
+    try {
+        const dataUrl = await readFileAsDataURL(file);
+        const img = await loadImage(dataUrl);
+
+        const dimensions = calculateDimensions({
+            width: img.width,
+            height: img.height,
+            maxWidth,
+            maxHeight
+        });
+
+        const { canvas, ctx } = createCanvas(dimensions.width, dimensions.height);
+
+        // Draw with white background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+        ctx.drawImage(img, 0, 0, dimensions.width, dimensions.height);
+
+        const compressedDataUrl = compressWithQuality(canvas, quality, maxSizeKB);
+
+        return compressedDataUrl;
+    } catch (error) {
+        throw new ImageProcessingError(
+            error.message || 'Image compression failed',
+            error.code || 'COMPRESSION_ERROR'
+        );
+    }
 };
 
 /**
  * Creates a thumbnail from an image file
  * @param {File} file - The image file
- * @param {number} size - The desired thumbnail size
- * @returns {Promise<string>} - Returns a base64 data URL of the thumbnail
+ * @param {Object} options - Thumbnail options
+ * @returns {Promise<string>} - Thumbnail data URL
  */
-export const createThumbnail = async (file, size = 100) => {
+export const createThumbnail = async (file, options = {}) => {
+    const {
+        size = IMAGE_CONSTANTS.DEFAULTS.thumbnailSize,
+        quality = IMAGE_CONSTANTS.DEFAULTS.thumbnailQuality
+    } = options;
+
     return compressImage(file, {
         maxWidth: size,
         maxHeight: size,
-        quality: 0.6,
+        quality,
         maxSizeKB: 50
     });
 };
 
 /**
- * Converts a data URL to a Blob object
- * @param {string} dataUrl - The data URL to convert
- * @returns {Blob} - The resulting Blob object
+ * Converts a data URL to a Blob
+ * @param {string} dataUrl - The data URL
+ * @returns {Blob} - The resulting Blob
  */
 export const dataUrlToBlob = (dataUrl) => {
-    const arr = dataUrl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
+    try {
+        const arr = dataUrl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
 
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+
+        return new Blob([u8arr], { type: mime });
+    } catch (error) {
+        throw new ImageProcessingError('Failed to convert data URL to Blob', 'CONVERSION_ERROR');
+    }
+};
+
+/**
+ * Gets dimensions of an image file
+ * @param {File} file - The image file
+ * @returns {Promise<Object>} - Image dimensions
+ */
+export const getImageDimensions = async (file) => {
+    try {
+        const url = URL.createObjectURL(file);
+        const img = await loadImage(url);
+
+        URL.revokeObjectURL(url);
+
+        return {
+            width: img.width,
+            height: img.height
+        };
+    } catch (error) {
+        throw new ImageProcessingError('Failed to get image dimensions', 'DIMENSION_ERROR');
+    }
+};
+
+/**
+ * Checks if an image is within specified dimensions
+ * @param {File} file - The image file
+ * @param {Object} limits - Dimension limits
+ * @returns {Promise<boolean>} - Whether image is within limits
+ */
+export const isImageWithinDimensions = async (file, limits = {}) => {
+    const {
+        maxWidth = IMAGE_CONSTANTS.DEFAULTS.maxWidth,
+        maxHeight = IMAGE_CONSTANTS.DEFAULTS.maxHeight
+    } = limits;
+
+    try {
+        const dimensions = await getImageDimensions(file);
+        return dimensions.width <= maxWidth && dimensions.height <= maxHeight;
+    } catch (error) {
+        return false;
+    }
+};
+
+/**
+ * Batch processes multiple images
+ * @param {File[]} files - Array of image files
+ * @param {Object} options - Processing options
+ * @returns {Promise<string[]>} - Array of processed image data URLs
+ */
+export const batchProcessImages = async (files, options = {}) => {
+    const validFiles = files.filter(isValidImageFile);
+
+    if (validFiles.length === 0) {
+        throw new ImageProcessingError('No valid images to process', 'NO_VALID_FILES');
     }
 
-    return new Blob([u8arr], { type: mime });
+    try {
+        const processed = await Promise.all(
+            validFiles.map(file => compressImage(file, options))
+        );
+
+        return processed;
+    } catch (error) {
+        throw new ImageProcessingError('Batch processing failed', 'BATCH_ERROR');
+    }
 };
 
-/**
- * Gets image dimensions from a file
- * @param {File} file - The image file
- * @returns {Promise<{width: number, height: number}>} - Image dimensions
- */
-export const getImageDimensions = (file) => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-
-        img.onload = () => {
-            URL.revokeObjectURL(img.src);
-            resolve({
-                width: img.width,
-                height: img.height
-            });
-        };
-
-        img.onerror = () => {
-            URL.revokeObjectURL(img.src);
-            reject(new Error('Failed to load image'));
-        };
-    });
-};
-
-/**
- * Rotates an image to the correct orientation based on EXIF data
- * @param {File} file - The image file
- * @returns {Promise<string>} - Returns a base64 data URL of the rotated image
- */
-export const fixImageOrientation = async (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsArrayBuffer(file);
-
-        reader.onload = (event) => {
-            const view = new DataView(event.target.result);
-
-            // Check if image has EXIF data
-            if (view.getUint16(0, false) !== 0xFFD8) {
-                // Not a JPEG
-                resolve(URL.createObjectURL(file));
-                return;
-            }
-
-            let offset = 2;
-            let orientation = 1;
-
-            while (offset < view.byteLength) {
-                if (view.getUint16(offset, false) === 0xFFE1) {
-                    if (view.getUint32(offset + 2, false) === 0x45786966) {
-                        const little = view.getUint16(offset + 8, false) === 0x4949;
-                        offset += 10;
-
-                        // Find orientation tag
-                        for (let i = 0; i < view.getUint16(offset, little); i++) {
-                            if (view.getUint16(offset + 2 + 12 * i, little) === 0x0112) {
-                                orientation = view.getUint16(offset + 8 + 12 * i, little);
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                }
-                offset += 2;
-            }
-
-            // Apply rotation if needed
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-
-            img.onload = () => {
-                URL.revokeObjectURL(img.src);
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                // Set proper canvas dimensions before transform
-                if ([5, 6, 7, 8].indexOf(orientation) > -1) {
-                    canvas.width = img.height;
-                    canvas.height = img.width;
-                } else {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                }
-
-                // Transform context based on orientation
-                switch (orientation) {
-                    case 2: ctx.transform(-1, 0, 0, 1, img.width, 0); break;
-                    case 3: ctx.transform(-1, 0, 0, -1, img.width, img.height); break;
-                    case 4: ctx.transform(1, 0, 0, -1, 0, img.height); break;
-                    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
-                    case 6: ctx.transform(0, 1, -1, 0, img.height, 0); break;
-                    case 7: ctx.transform(0, -1, -1, 0, img.height, img.width); break;
-                    case 8: ctx.transform(0, -1, 1, 0, 0, img.width); break;
-                }
-
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg', 0.9));
-            };
-
-            img.onerror = () => {
-                reject(new Error('Failed to load image'));
-            };
-        };
-
-        reader.onerror = () => {
-            reject(new Error('Failed to read file'));
-        };
-    });
+export default {
+    compressImage,
+    createThumbnail,
+    isValidImageFile,
+    dataUrlToBlob,
+    getImageDimensions,
+    isImageWithinDimensions,
+    batchProcessImages,
+    IMAGE_CONSTANTS
 };

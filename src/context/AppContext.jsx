@@ -1,9 +1,8 @@
-import React from 'react';
-import { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import { auth, db } from "../config/firebase";
 import { doc, getDoc, onSnapshot, updateDoc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 export const AppContext = createContext();
 
@@ -14,64 +13,76 @@ const AppContextProvider = ({ children }) => {
     const [messagesId, setMessagesId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [chatUser, setChatUser] = useState(null);
-    const [chatVisible, setChatVisible] = useState(true);
+    const [chatVisible, setChatVisible] = useState(window.innerWidth > 768);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-    // Load user data
+    // Handle window resize for mobile responsiveness
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth <= 768;
+            if (mobile !== isMobile) {
+                setIsMobile(mobile);
+                setChatVisible(!mobile);
+            }
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, [isMobile]);
+
+    /**
+     * Load user data from Firestore
+     */
     const loadUserData = useCallback(async (uid) => {
         try {
             const userRef = doc(db, "users", uid);
             const userSnap = await getDoc(userRef);
 
             if (!userSnap.exists()) {
-                // Create user document if it doesn't exist
                 const newUserData = {
                     id: uid,
                     createdAt: Date.now(),
-                    lastSeen: Date.now()
+                    lastSeen: Date.now(),
                 };
                 await setDoc(userRef, newUserData);
                 setUserData(newUserData);
-                navigate('/profile');
+                navigate("/profile");
                 return;
             }
 
             const userInfo = userSnap.data();
             setUserData(userInfo);
 
-            // Update last seen
             await updateDoc(userRef, { lastSeen: Date.now() });
 
-            // Update chat user if needed
-            if (userInfo.id === chatUser?.userData?.id) {
-                setChatUser(prev => ({
+            // Update chat user last seen if applicable
+            if (chatUser?.userData?.id === uid) {
+                setChatUser((prev) => ({
                     ...prev,
-                    userData: {
-                        ...prev.userData,
-                        lastSeen: Date.now()
-                    }
+                    userData: { ...prev.userData, lastSeen: Date.now() },
                 }));
             }
 
-            // Navigate based on profile completion
             if (userInfo.avatar && userInfo.name) {
-                if (window.location.pathname === '/') {
-                    navigate('/chat');
+                if (window.location.pathname === "/") {
+                    navigate("/chat");
                 }
             } else {
-                navigate('/profile');
+                navigate("/profile");
             }
         } catch (error) {
             console.error("Error loading user data:", error);
             toast.error("Failed to load user data");
             setUserData(null);
-            navigate('/');
+            navigate("/");
         }
     }, [navigate, chatUser]);
 
-    // Auth state observer
+    // Handle authentication state changes
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            setIsLoading(true);
             try {
                 if (user) {
                     await loadUserData(user.uid);
@@ -80,12 +91,10 @@ const AppContextProvider = ({ children }) => {
                     setChatData([]);
                     setMessages([]);
                     setChatUser(null);
-                    if (window.location.pathname !== '/') {
-                        navigate('/');
-                    }
+                    navigate("/");
                 }
             } catch (error) {
-                console.error("Auth state change error:", error);
+                console.error("Auth state error:", error);
                 toast.error("Authentication error");
             } finally {
                 setIsLoading(false);
@@ -95,7 +104,35 @@ const AppContextProvider = ({ children }) => {
         return () => unsubscribe();
     }, [navigate, loadUserData]);
 
-    // Messages listener
+    /**
+     * Handle selecting a user for chat
+     * @param {Object} selectedUser - The selected user's details
+     * @param {string} messageThreadId - The message thread ID
+     */
+    const handleChatUserSelection = (selectedUser, messageThreadId) => {
+        if (!selectedUser || !messageThreadId) {
+            console.warn("Invalid chat user selection");
+            return;
+        }
+
+        setChatUser({
+            userData: {
+                id: selectedUser.id,
+                name: selectedUser.name,
+                avatar: selectedUser.avatar || "",
+            },
+            messageId: messageThreadId,
+        });
+
+        setMessagesId(messageThreadId);
+
+        // Adjust chat visibility for mobile users
+        if (isMobile) {
+            setChatVisible(true);
+        }
+    };
+
+    // Listen for messages updates
     useEffect(() => {
         if (!messagesId) {
             setMessages([]);
@@ -106,8 +143,7 @@ const AppContextProvider = ({ children }) => {
             doc(db, "messages", messagesId),
             (doc) => {
                 if (doc.exists()) {
-                    const messagesData = doc.data().messages || [];
-                    setMessages([...messagesData].reverse());
+                    setMessages([...doc.data().messages].reverse());
                 } else {
                     setMessages([]);
                 }
@@ -121,7 +157,7 @@ const AppContextProvider = ({ children }) => {
         return () => unsubscribe();
     }, [messagesId]);
 
-    // Chats listener
+    // Listen for chat updates
     useEffect(() => {
         if (!userData?.id) {
             setChatData([]);
@@ -134,31 +170,21 @@ const AppContextProvider = ({ children }) => {
             async (snap) => {
                 try {
                     if (!snap.exists()) {
-                        // Create chats document if it doesn't exist
                         await setDoc(chatRef, { chatsData: [] });
                         setChatData([]);
                         return;
                     }
 
                     const chatItems = snap.data().chatsData || [];
-
                     const tempData = await Promise.all(
                         chatItems.map(async (item) => {
                             if (!item.rid) return null;
-
                             try {
                                 const userRef = doc(db, "users", item.rid);
                                 const userSnap = await getDoc(userRef);
-
-                                if (!userSnap.exists()) {
-                                    console.warn("User not found:", item.rid);
-                                    return null;
-                                }
-
-                                return {
-                                    ...item,
-                                    userData: userSnap.data()
-                                };
+                                return userSnap.exists()
+                                    ? { ...item, userData: userSnap.data() }
+                                    : null;
                             } catch (err) {
                                 console.error("Error fetching chat user:", err);
                                 return null;
@@ -166,7 +192,6 @@ const AppContextProvider = ({ children }) => {
                         })
                     );
 
-                    // Sort by latest message and filter out null values
                     const validChats = tempData
                         .filter(Boolean)
                         .sort((a, b) => b.updatedAt - a.updatedAt);
@@ -197,16 +222,14 @@ const AppContextProvider = ({ children }) => {
         setMessages,
         chatUser,
         setChatUser,
+        handleChatUserSelection,
         chatVisible,
         setChatVisible,
-        isLoading
+        isLoading,
+        isMobile,
     };
 
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export default AppContextProvider;

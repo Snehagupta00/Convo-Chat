@@ -7,7 +7,7 @@
     flex-direction: column;
     position: relative;
     overflow-y: auto;
-
+    width: 300px; /* Fixed width */
 }
 
 .right-sidebar--empty {
@@ -20,7 +20,7 @@
     text-align: center;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 1rem; 
+    margin-bottom: 1rem;
 }
 
 .right-sidebar__avatar {
@@ -117,8 +117,15 @@
     background: #c0392b;
 }
 
+/* Media Queries */
+@media (max-width: 1200px) {
+    .right-sidebar {
+        display: none; /* Hide on medium screens */
+    }
+}
+
 @media (max-width: 768px) {
     .right-sidebar {
-        display: none;
+        display: none; /* Hide on mobile screens */
     }
 }

@@ -16,19 +16,23 @@ const ProfileUpdate = () => {
     const [uid, setUid] = useState('');
     const [prevImage, setPrevImage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const handleProfileUpdate = async (event) => {
         event.preventDefault();
         setIsLoading(true);
+        setUploadProgress(0);
 
         try {
             if (!name.trim() || !bio.trim()) {
                 toast.error("Name and bio cannot be empty!");
+                setIsLoading(false);
                 return;
             }
 
             if (!prevImage && !image) {
                 toast.error("Please upload an image!");
+                setIsLoading(false);
                 return;
             }
 
@@ -43,13 +47,18 @@ const ProfileUpdate = () => {
             let imgUrl = prevImage;
             if (image) {
                 try {
-                    imgUrl = await upload(image);
+                    imgUrl = await upload(image, {
+                        onProgress: (progress) => setUploadProgress(progress),
+                        onError: (error) => toast.error(error.message),
+                    });
+
                     if (!imgUrl) {
                         throw new Error('Image upload failed');
                     }
                 } catch (error) {
                     console.error("Image upload error:", error);
-                    toast.error("Failed to upload image. Try again!");
+                    toast.error(error.message || "Failed to upload image. Please try again.");
+                    setIsLoading(false);
                     return;
                 }
             }
@@ -64,16 +73,17 @@ const ProfileUpdate = () => {
 
             setPrevImage(imgUrl);
             toast.success("Profile updated successfully!");
-            
+
             setTimeout(() => {
                 navigate('/chat');
             }, 1000);
 
         } catch (error) {
             console.error("Profile update error:", error);
-            toast.error("Failed to update profile. Try again!");
+            toast.error(error.message || "Failed to update profile. Please try again.");
         } finally {
             setIsLoading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -87,7 +97,7 @@ const ProfileUpdate = () => {
                 setName(userData?.name || '');
                 setBio(userData?.bio || '');
                 setPrevImage(userData?.avatar || '');
-                
+
                 if (userData?.isProfileComplete) {
                     navigate('/chat');
                 }
@@ -135,7 +145,7 @@ const ProfileUpdate = () => {
             <div className="profile-update__container">
                 <form onSubmit={handleProfileUpdate} className="profile-update__form">
                     <h3 className="profile-update__title">Profile Details</h3>
-                    
+
                     <label htmlFor="avatar" className="profile-update__avatar-label">
                         <input
                             type="file"
@@ -153,6 +163,12 @@ const ProfileUpdate = () => {
                         />
                         <span className="profile-update__avatar-text">Upload Profile Picture</span>
                     </label>
+
+                    {uploadProgress > 0 && (
+                        <div className="upload-progress">
+                            Uploading... {uploadProgress}%
+                        </div>
+                    )}
 
                     <textarea
                         onChange={(e) => setBio(e.target.value)}
@@ -175,8 +191,8 @@ const ProfileUpdate = () => {
                         className="profile-update__input"
                     />
 
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={isLoading}
                         className="profile-update__button"
                     >

@@ -1,11 +1,22 @@
-import React, { useContext, useEffect, useState, useRef } from 'react';
-import './ChatBox.css';
-import assets from '../../assets/assets';
-import { AppContext } from '../../context/AppContext';
-import { sendMessage, updateLastMessage, handleImageUpload } from '../../services/messageService';
-import { formatTime, isImageValid } from '../../utils/helpers';
-import { toast } from 'react-toastify';
-import EmojiPicker from 'emoji-picker-react';
+import React, { useContext, useEffect, useState, useRef } from "react";
+import "./ChatBox.css";
+import assets from "../../assets/assets";
+import { AppContext } from "../../context/AppContext";
+import { sendMessage, updateLastMessage, handleImageUpload } from "../../services/messageService";
+import { isValidImageFile } from "../../utils/imageUtils";
+import { formatTime } from "../../utils/dateUtils";
+import { toast } from "react-toastify";
+import EmojiPicker from "emoji-picker-react";
+import {
+    Send,
+    Smile,
+    HelpCircle,
+    ImagePlus,
+    ChevronLeft,
+    Search,
+    MoreVertical,
+    PanelRightOpen
+} from 'lucide-react';
 
 const ChatBox = () => {
     const {
@@ -15,69 +26,161 @@ const ChatBox = () => {
         messages,
         setMessages,
         chatVisible,
-        setChatVisible
+        setChatVisible,
+        isMobile
     } = useContext(AppContext);
 
-    const [input, setInput] = useState('');
+    const [input, setInput] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
     const chatContainerRef = useRef(null);
     const inputRef = useRef(null);
+    const emojiPickerRef = useRef(null);
+    const fileInputRef = useRef(null);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
+    // Scroll to latest message
     const scrollToBottom = () => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     };
 
+    // Auto scroll on new messages
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    // Handle clicking outside emoji picker
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setShowEmoji(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Debug logging for chat user changes
+    useEffect(() => {
+        if (chatUser) {
+            console.log("Chat user data:", {
+                messageId: messagesId,
+                userData: chatUser.userData,
+                currentUserId: userData?.id
+            });
+        }
+    }, [chatUser, messagesId, userData]);
+
+    // Handle emoji selection
     const handleEmojiClick = (emojiData) => {
-        setInput(prev => prev + emojiData.emoji);
-        setShowEmoji(false);
-        inputRef.current?.focus();
+        const cursor = inputRef.current.selectionStart;
+        const text = input.slice(0, cursor) + emojiData.emoji + input.slice(cursor);
+        setInput(text);
+
+        // Maintain cursor position
+        setTimeout(() => {
+            inputRef.current.focus();
+            const newCursor = cursor + emojiData.emoji.length;
+            inputRef.current.setSelectionRange(newCursor, newCursor);
+        }, 10);
     };
 
+    // Handle file upload with validation
     const handleFileUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        try {
-            if (!await isImageValid(file)) {
-                toast.error('Please upload a valid image file (max 5MB)');
-                return;
-            }
+        if (!userData?.id || !messagesId || !chatUser?.userData?.id) {
+            toast.error("Missing required chat data. Please try again.");
+            return;
+        }
 
-            setIsUploading(true);
-            await handleImageUpload(file, messagesId, userData.id);
-            toast.success('Image sent successfully!');
+        if (!(await isValidImageFile(file))) {
+            toast.error("Invalid image file. Max size: 5MB");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const imageUrl = await handleImageUpload(file, messagesId, userData.id);
+            await updateLastMessage(
+                "📷 Image",
+                messagesId,
+                userData.id,
+                chatUser.userData.id
+            );
+            toast.success("Image sent successfully!");
         } catch (error) {
-            toast.error('Failed to send image. Please try again.');
+            console.error("Error uploading image:", error);
+            toast.error(error.message || "Failed to send image. Please try again.");
         } finally {
             setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
+    // Send text message with validation
     const handleSendMessage = async (e) => {
         e.preventDefault();
 
-        if (!input.trim() && !isUploading) return;
+        const trimmedInput = input.trim();
+        if (!trimmedInput) return;
+
+        // Validate required data
+        if (!userData?.id) {
+            toast.error("User data is missing. Please try logging in again.");
+            return;
+        }
+
+        if (!messagesId) {
+            toast.error("Chat session is not initialized.");
+            return;
+        }
+
+        if (!chatUser?.userData?.id) {
+            toast.error("Recipient data is missing.");
+            return;
+        }
 
         try {
-            await sendMessage(input.trim(), messagesId, userData.id);
-            await updateLastMessage(input.trim(), messagesId, userData.id, chatUser.rId);
-            setInput('');
+            await sendMessage(trimmedInput, messagesId, userData.id);
+            await updateLastMessage(
+                trimmedInput,
+                messagesId,
+                userData.id,
+                chatUser.userData.id
+            );
+            setInput("");
+            setShowEmoji(false);
         } catch (error) {
-            toast.error('Failed to send message. Please try again.');
+            console.error("Error sending message:", error);
+            toast.error(error.message || "Failed to send message. Please try again.");
         }
     };
 
+    // Handle Back Button Click on Mobile
+    const handleBackClick = () => {
+        if (isMobile) {
+            setChatVisible(false);
+            setShowEmoji(false);
+        }
+    };
+
+    // Check if user is online
+    const isUserOnline = (lastSeen) => {
+        if (!lastSeen) return false;
+        return Date.now() - lastSeen < 5 * 60 * 1000;
+    };
+
+    // Welcome screen when no chat is selected
     if (!chatUser) {
         return (
-            <div className={`chatbox-welcome ${chatVisible ? "" : "hidden"}`}>
-                <img src={assets.logo_icon} alt="Welcome" />
+            <div className={`chatbox-welcome ${isMobile && !chatVisible ? "hidden" : ""}`}>
+                <img src={assets.logo_icon} alt="Welcome" className="welcome-logo" />
                 <h2>Welcome to ChatApp</h2>
                 <p>Select a chat to start messaging</p>
             </div>
@@ -85,47 +188,49 @@ const ChatBox = () => {
     }
 
     return (
-        <div className={`chatbox ${chatVisible ? "" : "hidden"}`}>
+        <div className={`chatbox ${isMobile && !chatVisible ? "hidden" : ""}`}>
+            {/* Chat Header */}
             <div className="chatbox__header">
                 <div className="chatbox__user-info">
-                    <img
-                        src={assets.back_arrow}
-                        alt="Back"
-                        className="chatbox__back-btn"
-                        onClick={() => setChatVisible(false)}
-                    />
+                    {isMobile && (
+                        <ChevronLeft
+                            className="chatbox__back-btn"
+                            onClick={handleBackClick}
+                            size={24}
+                        />
+                    )}
                     <img
                         src={chatUser.userData?.avatar || assets.avatar_placeholder}
                         alt={chatUser.userData?.name}
                         className="chatbox__user-avatar"
                     />
-                    <div>
+                    <div className="chatbox__user-details">
                         <h3>{chatUser.userData?.name}</h3>
-                        <span className={`chatbox__status ${chatUser.userData?.isOnline ? 'online' : 'offline'
-                            }`}>
-                            {chatUser.userData?.isOnline ? 'Online' : 'Offline'}
+                        <span className={`chatbox__status ${isUserOnline(chatUser.userData?.lastSeen) ? "online" : "offline"}`}>
+                            {isUserOnline(chatUser.userData?.lastSeen) ? "Online" : "Offline"}
                         </span>
                     </div>
                 </div>
                 <div className="chatbox__actions">
-                    <img src={assets.search_icon} alt="Search" />
-                    <img src={assets.more_icon} alt="More" />
+                    <Search className="chatbox__action-icon" size={20} />
+                    <PanelRightOpen className="chatbox__action-icon" size={20} />
+                    <MoreVertical className="chatbox__action-icon" size={20} />
                 </div>
             </div>
 
+            {/* Chat Messages */}
             <div className="chatbox__messages" ref={chatContainerRef}>
                 {messages.map((msg, index) => (
                     <div
                         key={index}
-                        className={`chatbox__message ${msg.sId === userData.id ? 'sent' : 'received'
-                            }`}
+                        className={`chatbox__message ${msg.sId === userData.id ? "sent" : "received"}`}
                     >
                         {msg.image ? (
                             <div className="chatbox__image-message">
                                 <img
                                     src={msg.image}
                                     alt="Shared"
-                                    onClick={() => window.open(msg.image, '_blank')}
+                                    onClick={() => window.open(msg.image, "_blank")}
                                 />
                                 <span className="chatbox__message-time">
                                     {formatTime(msg.createdAt)}
@@ -143,48 +248,64 @@ const ChatBox = () => {
                 ))}
             </div>
 
+            {/* Chat Input */}
             <form className="chatbox__input-area" onSubmit={handleSendMessage}>
                 <div className="chatbox__input-container">
-                    <img
-                        src={assets.emoji_icon}
-                        alt="Emoji"
-                        onClick={() => setShowEmoji(!showEmoji)}
-                    />
+                    <div className="chatbox__input-actions">
+                        <div className="chatbox__emoji-wrapper" ref={emojiPickerRef}>
+                            <Smile
+                                className={`chatbox__action-icon ${showEmoji ? 'active' : ''}`}
+                                onClick={() => setShowEmoji(!showEmoji)}
+                                size={24}
+                            />
+                            {showEmoji && (
+                                <div className="chatbox__emoji-picker">
+                                    <EmojiPicker
+                                        onEmojiClick={handleEmojiClick}
+                                        autoFocusSearch={false}
+                                        theme="light"
+                                        searchPlaceHolder="Search emoji..."
+                                        height={350}
+                                        width={300}
+                                        lazyLoadEmojis={true}
+                                        skinTonesDisabled
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <label className="chatbox__file-input">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                disabled={isUploading}
+                                hidden
+                                ref={fileInputRef}
+                            />
+                            <ImagePlus
+                                className={`chatbox__action-icon ${isUploading ? 'uploading' : ''}`}
+                                size={24}
+                            />
+                        </label>
+                        <HelpCircle className="chatbox__action-icon" size={24} />
+                    </div>
                     <input
                         type="text"
                         placeholder="Type a message..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         ref={inputRef}
+                        className="chatbox__input"
                     />
-                    <label className="chatbox__file-input">
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            disabled={isUploading}
-                        />
-                        <img src={assets.attachment_icon} alt="Attach" />
-                    </label>
                 </div>
                 <button
                     type="submit"
-                    disabled={!input.trim() && !isUploading}
+                    disabled={!input.trim() || isUploading}
                     className="chatbox__send-btn"
                 >
-                    <img src={assets.send_icon} alt="Send" />
+                    <Send size={20} />
                 </button>
             </form>
-
-            {showEmoji && (
-                <div className="chatbox__emoji-picker">
-                    <EmojiPicker
-                        onEmojiClick={handleEmojiClick}
-                        width={300}
-                        height={400}
-                    />
-                </div>
-            )}
         </div>
     );
 };

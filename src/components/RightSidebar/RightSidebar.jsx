@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import ImageViewer from '../ImageViewer/ImageViewer';
 
 const RightSidebar = () => {
-    const { chatUser, messages } = useContext(AppContext);
+    const { chatUser, messages, isMobile } = useContext(AppContext);
     const [msgImages, setMsgImages] = useState([]);
     const [selectedImage, setSelectedImage] = useState(null);
     const [loading, setLoading] = useState(false);

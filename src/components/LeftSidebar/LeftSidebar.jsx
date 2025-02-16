@@ -1,11 +1,11 @@
-import React, { useContext, useState, useCallback } from "react";
+import React, { useContext, useState, useCallback, useRef } from "react";
 import "./LeftSidebar.css";
 import assets from "../../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../context/AppContext";
 import { debounce } from "../../utils/helpers";
 import { searchUsers, addNewChat } from "../../services/chatService";
-import { formatChatTime } from "../../utils/dateUtils";
+import { formatChatTime } from '../../utils/helpers';
 import { toast } from "react-toastify";
 
 const LeftSidebar = () => {
@@ -16,16 +16,18 @@ const LeftSidebar = () => {
         chatUser,
         setChatUser,
         setMessagesId,
-        messageId,
+        messagesId,
         chatVisible,
-        setChatVisible
+        setChatVisible,
+        isMobile
     } = useContext(AppContext);
 
     const [searchResults, setSearchResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
     const [loadingChat, setLoadingChat] = useState(null);
 
-    const debouncedSearch = useCallback(
+    // Persistent debounce function using useRef (prevents unnecessary re-renders)
+    const debouncedSearchRef = useRef(
         debounce(async (input) => {
             if (!input.trim()) {
                 setSearchResults(null);
@@ -33,6 +35,7 @@ const LeftSidebar = () => {
                 return;
             }
             try {
+                setIsSearching(true);
                 const results = await searchUsers(input, userData?.id);
                 setSearchResults(results);
             } catch (error) {
@@ -41,15 +44,15 @@ const LeftSidebar = () => {
             } finally {
                 setIsSearching(false);
             }
-        }, 500),
-        [userData]
+        }, 500)
     );
 
+    // Handle search input change
     const handleSearch = (e) => {
-        setIsSearching(true);
-        debouncedSearch(e.target.value);
+        debouncedSearchRef.current(e.target.value);
     };
 
+    // Start a new chat
     const handleAddChat = async (selectedUser) => {
         if (loadingChat) return; // Prevent multiple clicks
 
@@ -59,7 +62,7 @@ const LeftSidebar = () => {
             setSearchResults(null);
             setChatUser(newChat);
             setMessagesId(newChat.messageId);
-            setChatVisible(true);
+            setChatVisible(isMobile ? true : chatVisible); // Only toggle on mobile
             toast.success("Chat started successfully!");
         } catch (error) {
             console.error("Chat creation error:", error);
@@ -69,18 +72,22 @@ const LeftSidebar = () => {
         }
     };
 
+    // Select an existing chat
     const handleChatSelect = (chat) => {
         setMessagesId(chat.messageId);
         setChatUser(chat);
-        setChatVisible(true);
+        if (isMobile) {
+            setChatVisible(true);
+        }
     };
 
+    // Handle broken images
     const handleImageError = (e) => {
         e.target.src = assets.avatar_placeholder;
     };
 
     return (
-        <div className={`left-sidebar ${chatVisible ? "hidden" : ""}`}>
+        <div className={`left-sidebar ${isMobile && chatVisible ? "hidden" : ""}`}>
             <div className="left-sidebar__header">
                 <div className="left-sidebar__profile">
                     <img
@@ -117,12 +124,11 @@ const LeftSidebar = () => {
                             searchResults.map((user) => (
                                 <div
                                     key={user.id}
-                                    className={`left-sidebar__search-item ${loadingChat === user.id ? 'loading' : ''
-                                        }`}
+                                    className={`left-sidebar__search-item ${loadingChat === user.id ? 'loading' : ''}`}
                                     onClick={() => handleAddChat(user)}
                                 >
                                     <img
-                                        src={user.avatar}
+                                        src={user.avatar || assets.avatar_placeholder}
                                         alt={user.name}
                                         onError={handleImageError}
                                         className="left-sidebar__user-avatar"
@@ -149,8 +155,7 @@ const LeftSidebar = () => {
                             chatData.map((chat) => (
                                 <div
                                     key={chat.messageId}
-                                    className={`left-sidebar__chat-item ${chat.messageId === messageId ? "active" : ""
-                                        } ${!chat.messageSeen ? "unread" : ""}`}
+                                    className={`left-sidebar__chat-item ${chat.messageId === messagesId ? "active" : ""} ${!chat.messageSeen ? "unread" : ""}`}
                                     onClick={() => handleChatSelect(chat)}
                                 >
                                     <img
@@ -162,9 +167,7 @@ const LeftSidebar = () => {
                                     <div className="left-sidebar__chat-info">
                                         <h4>{chat.userData?.name}</h4>
                                         <div className="left-sidebar__message-preview">
-                                            {chat.lastMessage && (
-                                                <p>{chat.lastMessage}</p>
-                                            )}
+                                            {chat.lastMessage && <p>{chat.lastMessage}</p>}
                                         </div>
                                     </div>
                                     {chat.lastMessageTime && (
@@ -172,9 +175,7 @@ const LeftSidebar = () => {
                                             {formatChatTime(chat.lastMessageTime)}
                                         </span>
                                     )}
-                                    {!chat.messageSeen && (
-                                        <div className="left-sidebar__unread-indicator" />
-                                    )}
+                                    {!chat.messageSeen && <div className="left-sidebar__unread-indicator" />}
                                 </div>
                             ))
                         ) : (
