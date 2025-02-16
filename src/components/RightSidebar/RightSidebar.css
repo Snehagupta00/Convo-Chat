@@ -1,0 +1,104 @@
+/* Right Sidebar Container */
+.rs {
+    color: white;
+    background-color: #001030;
+    position: relative;
+    height: 80vh;
+    overflow-y: scroll;
+}
+
+/* Profile Section */
+.rs-profile {
+    padding-top: 60px;
+    text-align: center;
+    max-width: 70%;
+    margin: auto;
+}
+
+.rs-profile img {
+    width: 110px;
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+}
+
+.rs-profile h3 {
+    font-size: 18px;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 5px 0;
+}
+
+.rs-profile p {
+    font-size: 10px;
+    font-weight: 300;
+    margin: 5px 0;
+    opacity: 0.8;
+}
+
+/* Horizontal Rule */
+.rs hr {
+    margin: 10px 0;
+    border: 0.5px solid #fff;
+    opacity: 0.5;
+}
+
+/* Media Section */
+.rs-media {
+    padding: 0 20px;
+    font-size: 13px;
+}
+
+.rs-media div {
+    max-height: 180px;
+    overflow-y: scroll;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-top: 8px;
+}
+
+.rs-media div img {
+    width: 60px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.rs-media div img:hover {
+    opacity: 0.8;
+}
+
+.rs-media div img.active {
+    border: 2px solid #fff;
+}
+
+.rs-media div img.active:hover {
+    opacity: 1;
+}
+
+/* Logout Button */
+.rs button {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #077eff;
+    color: white;
+    border: none;
+    font-size: 14px;
+    padding: 10px 65px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.rs button:hover {
+    background: #0a6cff;
+}
+
+@media (max-width: 900px) {
+    .rs {
+        display: none;
+    }
+}

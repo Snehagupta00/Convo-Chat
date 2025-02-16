@@ -1,0 +1,60 @@
+.profile{
+    min-height: 100vh;
+    background: url(/background.png) no-repeat;
+    background-size: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-container{
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 700px;
+    border-radius: 10px;
+}
+.profilepic{
+    max-width: 160px;
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+    margin: 20px auto;
+}
+.profile form{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 40px;
+}
+.profile form h3{
+    font-weight: 500;
+}
+.profile label{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: gray;
+    cursor: pointer;
+}
+
+.profile label img{
+    width: 70px;
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+}
+.profile input,textarea{
+    min-width: 300px;
+    padding: 10px;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    outline-color: blue;
+}
+.profile form button{
+    padding: 10px;
+    background: blue;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}

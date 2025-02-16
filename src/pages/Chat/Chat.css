@@ -1,0 +1,29 @@
+.chat{
+    min-height: 100vh;
+    background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1557683316-973673baf926');
+    display: grid;
+    place-items: center;
+}
+.chat-container{
+    height: 74vh;
+    width: 95%;
+    max-width: 1000px;
+    background-color: aliceblue;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+}
+
+.loading {
+    font-size: 50px;
+    place-items: center;
+    position: relative;
+    color: white;
+}
+@media (max-width:900px){
+    .chat-container{
+        display: flex;
+    }
+    .loading{
+        font-size: 30px;
+    }
+}
