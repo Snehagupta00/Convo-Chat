@@ -7,6 +7,7 @@ import { debounce } from "../../utils/helpers";
 import { searchUsers, addNewChat } from "../../services/chatService";
 import { formatChatTime } from '../../utils/helpers';
 import { toast } from "react-toastify";
+import { MessageCircle } from "lucide-react";
 
 const LeftSidebar = () => {
     const navigate = useNavigate();
@@ -25,8 +26,6 @@ const LeftSidebar = () => {
     const [searchResults, setSearchResults] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
     const [loadingChat, setLoadingChat] = useState(null);
-
-    // Persistent debounce function using useRef (prevents unnecessary re-renders)
     const debouncedSearchRef = useRef(
         debounce(async (input) => {
             if (!input.trim()) {
@@ -46,15 +45,13 @@ const LeftSidebar = () => {
             }
         }, 500)
     );
-
-    // Handle search input change
     const handleSearch = (e) => {
         debouncedSearchRef.current(e.target.value);
     };
 
     // Start a new chat
     const handleAddChat = async (selectedUser) => {
-        if (loadingChat) return; // Prevent multiple clicks
+        if (loadingChat) return;
 
         try {
             setLoadingChat(selectedUser.id);
@@ -62,7 +59,7 @@ const LeftSidebar = () => {
             setSearchResults(null);
             setChatUser(newChat);
             setMessagesId(newChat.messageId);
-            setChatVisible(isMobile ? true : chatVisible); // Only toggle on mobile
+            setChatVisible(isMobile ? true : chatVisible);
             toast.success("Chat started successfully!");
         } catch (error) {
             console.error("Chat creation error:", error);
@@ -71,8 +68,6 @@ const LeftSidebar = () => {
             setLoadingChat(null);
         }
     };
-
-    // Select an existing chat
     const handleChatSelect = (chat) => {
         setMessagesId(chat.messageId);
         setChatUser(chat);
@@ -80,8 +75,6 @@ const LeftSidebar = () => {
             setChatVisible(true);
         }
     };
-
-    // Handle broken images
     const handleImageError = (e) => {
         e.target.src = assets.avatar_placeholder;
     };
@@ -180,11 +173,7 @@ const LeftSidebar = () => {
                             ))
                         ) : (
                             <div className="left-sidebar__empty">
-                                <img
-                                    src={assets.empty_chat}
-                                    alt="No chats"
-                                    className="left-sidebar__empty-icon"
-                                />
+                                <MessageCircle className="left-sidebar__empty-icon" size={48} strokeWidth={1.5} />
                                 <p>No chats yet</p>
                                 <span>Search for users to start chatting</span>
                             </div>

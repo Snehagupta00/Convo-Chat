@@ -10,12 +10,10 @@ import EmojiPicker from "emoji-picker-react";
 import {
     Send,
     Smile,
-    HelpCircle,
     ImagePlus,
     ChevronLeft,
     Search,
-    MoreVertical,
-    PanelRightOpen
+    MoreVertical
 } from 'lucide-react';
 
 const ChatBox = () => {
@@ -38,10 +36,10 @@ const ChatBox = () => {
     const emojiPickerRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // Scroll to latest message
+    // Scroll to bottom for latest messages
     const scrollToBottom = () => {
         if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            chatContainerRef.current.scrollToBottom = 0;
         }
     };
 
@@ -61,17 +59,6 @@ const ChatBox = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // Debug logging for chat user changes
-    useEffect(() => {
-        if (chatUser) {
-            console.log("Chat user data:", {
-                messageId: messagesId,
-                userData: chatUser.userData,
-                currentUserId: userData?.id
-            });
-        }
-    }, [chatUser, messagesId, userData]);
 
     // Handle emoji selection
     const handleEmojiClick = (emojiData) => {
@@ -105,6 +92,14 @@ const ChatBox = () => {
         setIsUploading(true);
         try {
             const imageUrl = await handleImageUpload(file, messagesId, userData.id);
+            const newMessage = {
+                id: Date.now(),
+                sId: userData.id,
+                image: imageUrl,
+                createdAt: new Date(),
+            };
+            setMessages(prevMessages => [newMessage, ...prevMessages]);
+
             await updateLastMessage(
                 "📷 Image",
                 messagesId,
@@ -147,6 +142,14 @@ const ChatBox = () => {
         }
 
         try {
+            const newMessage = {
+                id: Date.now(),
+                sId: userData.id,
+                text: trimmedInput,
+                createdAt: new Date(),
+            };
+            setMessages(prevMessages => [newMessage, ...prevMessages]);
+
             await sendMessage(trimmedInput, messagesId, userData.id);
             await updateLastMessage(
                 trimmedInput,
@@ -159,6 +162,8 @@ const ChatBox = () => {
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error(error.message || "Failed to send message. Please try again.");
+            // Remove the optimistically added message on error
+            setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newMessage.id));
         }
     };
 
@@ -213,16 +218,15 @@ const ChatBox = () => {
                 </div>
                 <div className="chatbox__actions">
                     <Search className="chatbox__action-icon" size={20} />
-                    <PanelRightOpen className="chatbox__action-icon" size={20} />
                     <MoreVertical className="chatbox__action-icon" size={20} />
                 </div>
             </div>
 
-            {/* Chat Messages */}
+            {/* Chat Messages - Now in reverse order */}
             <div className="chatbox__messages" ref={chatContainerRef}>
-                {messages.map((msg, index) => (
+                {[...messages].reverse().map((msg, index) => (
                     <div
-                        key={index}
+                        key={msg.id || index}
                         className={`chatbox__message ${msg.sId === userData.id ? "sent" : "received"}`}
                     >
                         {msg.image ? (
@@ -273,21 +277,7 @@ const ChatBox = () => {
                                 </div>
                             )}
                         </div>
-                        <label className="chatbox__file-input">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                disabled={isUploading}
-                                hidden
-                                ref={fileInputRef}
-                            />
-                            <ImagePlus
-                                className={`chatbox__action-icon ${isUploading ? 'uploading' : ''}`}
-                                size={24}
-                            />
-                        </label>
-                        <HelpCircle className="chatbox__action-icon" size={24} />
+
                     </div>
                     <input
                         type="text"
@@ -297,6 +287,20 @@ const ChatBox = () => {
                         ref={inputRef}
                         className="chatbox__input"
                     />
+                    <label className="chatbox__file-input">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                            hidden
+                            ref={fileInputRef}
+                        />
+                        <ImagePlus
+                            className={`chatbox__action-icon ${isUploading ? 'uploading' : ''}`}
+                            size={24}
+                        />
+                    </label>
                 </div>
                 <button
                     type="submit"

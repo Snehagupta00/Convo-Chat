@@ -1,3 +1,13 @@
+.chat {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f5;
+    padding: 20px;
+}
+
 .chat-container {
     height: 95vh;
     width: 95%;
@@ -9,15 +19,43 @@
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     padding: 10px;
-    margin: 20px auto;
+    gap: 10px;
+    position: relative;
 }
 
+.chat-section {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.left-section {
+    grid-column: 1;
+}
+
+.main-section {
+    grid-column: 2;
+}
+
+.right-section {
+    grid-column: 3;
+}
+
+/* Tablet View */
 @media (max-width: 1200px) {
     .chat-container {
         grid-template-columns: 300px 1fr;
+        gap: 8px;
+    }
+
+    .right-section {
+        display: none;
     }
 }
 
+/* Mobile View */
 @media (max-width: 768px) {
     .chat {
         padding: 0;
@@ -27,15 +65,56 @@
         height: 100vh;
         width: 100%;
         border-radius: 0;
-        grid-template-columns: 1fr;
+        padding: 0;
+        gap: 0;
+        display: block;
     }
 
-    .chat-container > * {
-        grid-column: 1;
+    .chat-section {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
+        height: 100%;
+        border-radius: 0;
     }
 
     .hidden {
         display: none !important;
+    }
+    .left-section,
+    .main-section {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .left-section {
+        transform: translateX(0);
+    }
+
+    .main-section {
+        transform: translateX(0);
+    }
+
+    .left-section.hidden {
+        transform: translateX(-100%);
+    }
+
+    .main-section.hidden {
+        transform: translateX(100%);
+    }
+}
+.chat .loading-spinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.chat-section {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+@supports (-webkit-touch-callout: none) {
+    .chat-container {
+        height: -webkit-fill-available;
     }
 }
