@@ -3,75 +3,115 @@ import "./RightSidebar.css";
 import assets from "../../assets/assets";
 import { logout } from '../../config/firebase';
 import { AppContext } from '../../context/AppContext';
+import { formatLastSeen } from '../../utils/helpers';
+import { toast } from 'react-toastify';
+import ImageViewer from '../ImageViewer/ImageViewer';
 
 const RightSidebar = () => {
     const { chatUser, messages } = useContext(AppContext);
     const [msgImages, setMsgImages] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         try {
+            setLoading(true);
             if (!messages || messages.length === 0) {
                 setMsgImages([]);
             } else {
-                const images = messages.filter(msg => msg.image).map(msg => msg.image);
+                const images = messages
+                    .filter(msg => msg.image)
+                    .map(msg => ({
+                        url: msg.image,
+                        timestamp: msg.createdAt,
+                        senderId: msg.sId
+                    }));
                 setMsgImages(images);
             }
-            setLoading(false);
         } catch (err) {
-            setError("Failed to load images");
+            toast.error("Failed to load media");
+        } finally {
             setLoading(false);
         }
     }, [messages]);
 
-    if (loading) return <div className='rs'>Loading...</div>;
-    if (error) return <div className='rs'>{error}</div>;
+    const handleLogout = async () => {
+        try {
+            await logout();
+            toast.success("Logged out successfully");
+        } catch (error) {
+            toast.error("Failed to logout");
+        }
+    };
 
-    return chatUser ? (
-        <div className='rs'>
-            <div className="rs-profile">
-                <img src={chatUser?.userData?.avatar || "/placeholder.svg"} alt="User Avatar" />
-                <h3>
-                    {chatUser?.userData?.lastSeen && (Date.now() - chatUser.userData.lastSeen <= 300000) ? (
-                        <img className='dot' src={assets.green_dot} alt="Online" />
+    if (!chatUser) {
+        return (
+            <div className='right-sidebar right-sidebar--empty'>
+                <button onClick={handleLogout} className="right-sidebar__logout-btn">
+                    Logout
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className='right-sidebar'>
+            <div className="right-sidebar__profile">
+                <img 
+                    src={chatUser?.userData?.avatar || assets.avatar_placeholder} 
+                    alt="Profile" 
+                    className="right-sidebar__avatar"
+                />
+                <h3 className="right-sidebar__name">
+                    {chatUser?.userData?.lastSeen && 
+                     Date.now() - chatUser.userData.lastSeen <= 300000 ? (
+                        <img className='right-sidebar__status-dot' src={assets.green_dot} alt="Online" />
                     ) : null}
                     {chatUser?.userData?.name || "Unknown User"}
                 </h3>
-                <p>{chatUser?.userData?.bio || "No bio available"}</p>
+                <p className="right-sidebar__bio">
+                    {chatUser?.userData?.bio || "No bio available"}
+                </p>
+                <p className="right-sidebar__last-seen">
+                    {chatUser?.userData?.lastSeen ? 
+                        formatLastSeen(chatUser.userData.lastSeen) : 
+                        "Last seen unavailable"}
+                </p>
             </div>
-            <hr />
-            <div className='rs-media'>
-                <p>Media</p>
-                <div className='media-grid'>
-                    {msgImages.length > 0 ? (
-                        msgImages.map((url, index) => (
+
+            <div className="right-sidebar__section">
+                <h4>Shared Media</h4>
+                {loading ? (
+                    <div className="right-sidebar__loading">Loading media...</div>
+                ) : msgImages.length > 0 ? (
+                    <div className="right-sidebar__media-grid">
+                        {msgImages.map((image, index) => (
                             <img
-                                onClick={() => {
-                                    try {
-                                        window.open(url, "_blank");
-                                    } catch (error) {
-                                        console.error("Error opening image:", error);
-                                    }
-                                }}
                                 key={index}
-                                src={url}
-                                alt='Media'
-                                style={{ cursor: 'pointer' }}
+                                src={image.url}
+                                alt={`Shared ${index + 1}`}
+                                onClick={() => setSelectedImage(image.url)}
+                                className="right-sidebar__media-item"
                             />
-                        ))
-                    ) : (
-                        <p>No media available.</p>
-                    )}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="right-sidebar__no-media">No media shared yet</p>
+                )}
             </div>
-            <button onClick={logout}>Logout</button>
-        </div>
-    ) : (
-        <div className='rs'>
-            <button onClick={logout}>Logout</button>
+
+            <button onClick={handleLogout} className="right-sidebar__logout-btn">
+                Logout
+            </button>
+
+            {selectedImage && (
+                <ImageViewer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
-}
+};
 
 export default RightSidebar;

@@ -1,142 +1,128 @@
-.ls {
+.left-sidebar {
     background: #001030;
-    color: white;
-    height: 80vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.ls-top {
-    padding: 20px;
-}
-
-.ls-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.ls-nav .logo {
-    max-width: 140px;
-}
-
-.ls-nav .menu img {
-    max-height: 20px;
-    opacity: 0.7;
-    cursor: pointer;
-}
-
-.menu {
-    position: relative;
-    padding: 10px 0px;
-}
-
-.menu .sub-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    width: 130px;
-    border-radius: 5px;
-    padding: 20px;
-    background: white;
-    color: black;
-    display: none;
-}
-
-.menu:hover .sub-menu {
-    display: block;
-}
-
-.sub-menu hr {
-    border: none;
-    height: 1px;
-    background: #a4a4a4;
-    margin: 8px 0px;
-}
-
-.ls-search {
-    background: #002670;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    margin-top: 20px;
-}
-
-.ls-search img {
-    width: 16px;
-}
-
-.ls-search input {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: white;
-    font-size: 11px;
-    flex-grow: 1;
-}
-
-.ls-search input::placeholder {
-    color: white;
-}
-
-.ls-list {
-    display: flex;
-    flex-direction: column;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.left-sidebar__header {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.left-sidebar__profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.left-sidebar__profile-pic:hover {
+    transform: scale(1.05);
+}
+
+.left-sidebar__search {
+    position: relative;
+}
+
+.left-sidebar__search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.left-sidebar__search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.left-sidebar__content {
+    flex: 1;
     overflow-y: auto;
 }
 
-.friends {
+.left-sidebar__chat-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
+    gap: 1rem;
+    padding: 1rem;
     cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.friends:hover {
-    background: #002670;
+.left-sidebar__chat-item:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.friends.active {
-    background: #00358a;
+.left-sidebar__chat-item.active {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.friends img {
-    width: 35px;
-    aspect-ratio: 1/1;
+.left-sidebar__chat-item.unread {
+    background: rgba(7, 126, 255, 0.1);
+}
+
+.left-sidebar__chat-item img {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
+    object-fit: cover;
 }
 
-.friends div {
+.left-sidebar__chat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.left-sidebar__chat-info h4 {
+    margin: 0;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.left-sidebar__chat-info p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.left-sidebar__chat-time {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.left-sidebar__empty {
+    height: 100%;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 2rem;
+    text-align: center;
 }
 
-.friends span {
-    color: #9f9f9f;
-    font-size: 12px;
+.left-sidebar__empty img {
+    width: 100px;
+    opacity: 0.5;
 }
 
-.sub-menu p {
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.friends.border {
-    border: 3px solid #07fff3;
-}
-
-.friends.border div span {
-    color: #07fff3;
-}
- .friends span {
-        font-size: 9px;
+@media (max-width: 768px) {
+    .left-sidebar.hidden {
+        display: none;
     }
-@media (max-width: 900px) {
-    .ls {
-        width: 100%;
-    }
-
 }

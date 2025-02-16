@@ -4,6 +4,7 @@ import LeftSidebar from '../../components/LeftSidebar/LeftSidebar';
 import ChatBox from '../../components/ChatBox/ChatBox';
 import RightSidebar from '../../components/RightSidebar/RightSidebar';
 import { AppContext } from '../../context/AppContext';
+import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 
 const Chat = () => {
     const { chatData, userData } = useContext(AppContext);
@@ -15,17 +16,21 @@ const Chat = () => {
         }
     }, [chatData, userData]);
 
+    if (loading) {
+        return (
+            <div className='chat'>
+                <LoadingSpinner message="Loading your chats..." />
+            </div>
+        );
+    }
+
     return (
         <div className='chat'>
-            {loading ? (
-                <p className='loading'>Loading...</p>
-            ) : (
-                <div className='chat-container'>
-                    <LeftSidebar />
-                    <ChatBox />
-                    <RightSidebar />
-                </div>
-            )}
+            <div className='chat-container'>
+                <LeftSidebar />
+                <ChatBox />
+                <RightSidebar />
+            </div>
         </div>
     );
 };

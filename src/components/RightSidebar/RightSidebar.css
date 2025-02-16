@@ -1,104 +1,119 @@
-/* Right Sidebar Container */
-.rs {
-    color: white;
+.right-sidebar {
+    height: 100%;
     background-color: #001030;
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
     position: relative;
-    height: 80vh;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
-/* Profile Section */
-.rs-profile {
-    padding-top: 60px;
+.right-sidebar--empty {
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.right-sidebar__profile {
     text-align: center;
-    max-width: 70%;
-    margin: auto;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.rs-profile img {
-    width: 110px;
+.right-sidebar__avatar {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    aspect-ratio: 1/1;
+    margin-bottom: 1rem;
+    object-fit: cover;
+    border: 3px solid rgba(255, 255, 255, 0.1);
 }
 
-.rs-profile h3 {
-    font-size: 18px;
-    font-weight: 400;
+.right-sidebar__name {
+    font-size: 1.2rem;
+    margin: 0.5rem 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    margin: 5px 0;
+    gap: 0.5rem;
 }
 
-.rs-profile p {
-    font-size: 10px;
-    font-weight: 300;
-    margin: 5px 0;
-    opacity: 0.8;
+.right-sidebar__status-dot {
+    width: 10px;
+    height: 10px;
 }
 
-/* Horizontal Rule */
-.rs hr {
-    margin: 10px 0;
-    border: 0.5px solid #fff;
-    opacity: 0.5;
+.right-sidebar__bio {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0.5rem 0;
 }
 
-/* Media Section */
-.rs-media {
-    padding: 0 20px;
-    font-size: 13px;
+.right-sidebar__last-seen {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
 }
 
-.rs-media div {
-    max-height: 180px;
-    overflow-y: scroll;
+.right-sidebar__section {
+    margin-top: 1.5rem;
+}
+
+.right-sidebar__section h4 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.right-sidebar__media-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 7px;
-    margin-top: 8px;
+    gap: 0.5rem;
+    margin-top: 1rem;
 }
 
-.rs-media div img {
-    width: 60px;
-    border-radius: 5px;
+.right-sidebar__media-item {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
     cursor: pointer;
+    transition: transform 0.2s;
 }
 
-.rs-media div img:hover {
-    opacity: 0.8;
+.right-sidebar__media-item:hover {
+    transform: scale(1.05);
 }
 
-.rs-media div img.active {
-    border: 2px solid #fff;
+.right-sidebar__no-media {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
 }
 
-.rs-media div img.active:hover {
-    opacity: 1;
+.right-sidebar__loading {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
 }
 
-/* Logout Button */
-.rs button {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #077eff;
+.right-sidebar__logout-btn {
+    margin-top: auto;
+    background: #e74c3c;
     color: white;
     border: none;
-    font-size: 14px;
-    padding: 10px 65px;
-    border-radius: 20px;
+    padding: 0.8rem;
+    border-radius: 8px;
     cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
 }
 
-.rs button:hover {
-    background: #0a6cff;
+.right-sidebar__logout-btn:hover {
+    background: #c0392b;
 }
 
-@media (max-width: 900px) {
-    .rs {
+@media (max-width: 1024px) {
+    .right-sidebar {
         display: none;
     }
 }

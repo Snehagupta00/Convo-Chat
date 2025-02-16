@@ -2,219 +2,191 @@ import React, { useContext, useEffect, useState, useRef } from 'react';
 import './ChatBox.css';
 import assets from '../../assets/assets';
 import { AppContext } from '../../context/AppContext';
-import { arrayUnion, doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { sendMessage, updateLastMessage, handleImageUpload } from '../../services/messageService';
+import { formatTime, isImageValid } from '../../utils/helpers';
 import { toast } from 'react-toastify';
+import EmojiPicker from 'emoji-picker-react';
 
 const ChatBox = () => {
-    const { userData, chatUser, messagesId, messages, setMessages, chatVisible, setChatVisible } = useContext(AppContext);
+    const { 
+        userData, 
+        chatUser, 
+        messagesId, 
+        messages, 
+        setMessages, 
+        chatVisible, 
+        setChatVisible 
+    } = useContext(AppContext);
+    
     const [input, setInput] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const [showEmoji, setShowEmoji] = useState(false);
     const chatContainerRef = useRef(null);
+    const inputRef = useRef(null);
 
     useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const scrollToBottom = () => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [messages]);
-
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    await new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = () => {
-                            throw new Error('Failed to load image');
-                        };
-                    });
-
-                    const canvas = document.createElement('canvas');
-                    const maxSize = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height && width > maxSize) {
-                        height *= maxSize / width;
-                        width = maxSize;
-                    } else if (height > maxSize) {
-                        width *= maxSize / height;
-                        height = maxSize;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    const compressedImage = canvas.toDataURL('image/jpeg', 0.6);
-
-                    if (messagesId) {
-                        await updateDoc(doc(db, "messages", messagesId), {
-                            messages: arrayUnion({
-                                sId: userData.id,
-                                image: compressedImage,
-                                createdAt: new Date()
-                            })
-                        });
-                        updateLastMessage("[Image]");
-                    } else {
-                        toast.error("Message ID is not set.");
-                    }
-                } catch (error) {
-                    toast.error(error.message);
-                }
-            };
-            reader.readAsDataURL(file);
-        }
     };
 
-    const updateLastMessage = async (lastMessage) => {
-        if (!messagesId) {
-            toast.error("Message ID is not set.");
-            return;
-        }
-
-        const userIDs = [chatUser?.rId, userData.id];
-        for (const id of userIDs) {
-            if (!id) continue;
-
-            const userChatsRef = doc(db, "chats", id);
-            const userChatsSnapshot = await getDoc(userChatsRef);
-
-            if (userChatsSnapshot.exists()) {
-                const userChatData = userChatsSnapshot.data();
-                const chatIndex = userChatData.chatsData.findIndex((c) => c.messageId === messagesId);
-
-                if (chatIndex !== -1) {
-                    userChatData.chatsData[chatIndex].lastMessage = lastMessage.slice(0, 30);
-                    userChatData.chatsData[chatIndex].updatedAt = Date.now();
-                    if (userChatData.chatsData[chatIndex].rId === userData.id) {
-                        userChatData.chatsData[chatIndex].messageSeen = false;
-                    }
-
-                    await updateDoc(userChatsRef, {
-                        chatsData: userChatData.chatsData
-                    });
-                }
-            }
-        }
+    const handleEmojiClick = (emojiData) => {
+        setInput(prev => prev + emojiData.emoji);
+        setShowEmoji(false);
+        inputRef.current?.focus();
     };
 
-    const sendMessage = async () => {
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
         try {
-            if (input.trim() && messagesId) {
-                await updateDoc(doc(db, "messages", messagesId), {
-                    messages: arrayUnion({
-                        sId: userData.id,
-                        text: input,
-                        createdAt: new Date()
-                    })
-                });
-                updateLastMessage(input);
-                setInput('');
-            } else {
-                toast.error("Message ID is not set or input is empty.");
+            if (!await isImageValid(file)) {
+                toast.error('Please upload a valid image file (max 5MB)');
+                return;
             }
+
+            setIsUploading(true);
+            await handleImageUpload(file, messagesId, userData.id);
+            toast.success('Image sent successfully!');
         } catch (error) {
-            toast.error(error.message);
+            toast.error('Failed to send image. Please try again.');
+        } finally {
+            setIsUploading(false);
         }
     };
 
-    useEffect(() => {
-        if (messagesId) {
-            const unSub = onSnapshot(doc(db, "messages", messagesId), (doc) => {
-                if (doc.exists()) {
-                    const messagesData = doc.data().messages;
-                    setMessages(messagesData ? messagesData.reverse() : []);
-                }
-            });
-
-            return () => unSub();
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+        
+        if (!input.trim() && !isUploading) return;
+        
+        try {
+            await sendMessage(input.trim(), messagesId, userData.id);
+            await updateLastMessage(input.trim(), messagesId, userData.id, chatUser.rId);
+            setInput('');
+        } catch (error) {
+            toast.error('Failed to send message. Please try again.');
         }
-    }, [messagesId]);
+    };
 
     if (!chatUser) {
         return (
-            <div className={`chat-welcome ${chatVisible ? "" : "hidden"}`}>
-                <img src={assets.logo_icon} alt="" />
-                <p>Chat Any time any Where</p>
+            <div className={`chatbox-welcome ${chatVisible ? "" : "hidden"}`}>
+                <img src={assets.logo_icon} alt="Welcome" />
+                <h2>Welcome to ChatApp</h2>
+                <p>Select a chat to start messaging</p>
             </div>
         );
     }
 
-    const isOnline = chatUser?.userData
-        ? Date.now() - chatUser.userData.lastSeen <= 300000
-        : false;
-
     return (
-        <div className={`chat-box ${chatVisible ? "" : "hidden"}`}>
-            {chatUser?.userData && (
-                <div className="chat-user">
-                    <img src={chatUser.userData.avatar} alt="User" className="profile-pic" />
-                    <div className="user-info">
-                        <p>{chatUser.userData.name}</p>
-                        <span className="online-status">
-                            {isOnline ? (
-                                <img src={assets.green_dot} alt="Online" />
-                            ) : (
-                                <span style={{
-                                    width: '10px',
-                                    height: '10px',
-                                    backgroundColor: 'red',
-                                    borderRadius: '50%',
-                                    display: 'inline-block'
-                                }} title="Offline"></span>
-                            )}
+        <div className={`chatbox ${chatVisible ? "" : "hidden"}`}>
+            <div className="chatbox__header">
+                <div className="chatbox__user-info">
+                    <img 
+                        src={assets.back_arrow} 
+                        alt="Back" 
+                        className="chatbox__back-btn"
+                        onClick={() => setChatVisible(false)} 
+                    />
+                    <img 
+                        src={chatUser.userData?.avatar || assets.avatar_placeholder} 
+                        alt={chatUser.userData?.name} 
+                        className="chatbox__user-avatar"
+                    />
+                    <div>
+                        <h3>{chatUser.userData?.name}</h3>
+                        <span className={`chatbox__status ${
+                            chatUser.userData?.isOnline ? 'online' : 'offline'
+                        }`}>
+                            {chatUser.userData?.isOnline ? 'Online' : 'Offline'}
                         </span>
-                        <span className="user-status">{isOnline ? "Online" : "Offline"}</span>
                     </div>
-                    <img src={assets.help_icon} className="help" alt="Help" />
-                    <img onClick={() => setChatVisible(false)} src={assets.arrow_icon} className='arrow' alt='' />
                 </div>
-            )}
+                <div className="chatbox__actions">
+                    <img src={assets.search_icon} alt="Search" />
+                    <img src={assets.more_icon} alt="More" />
+                </div>
+            </div>
 
-            <div className="chat-msg" ref={chatContainerRef}>
+            <div className="chatbox__messages" ref={chatContainerRef}>
                 {messages.map((msg, index) => (
-                    <div key={index} className={msg.sId === userData.id ? 's-msg' : 'r-msg'}>
-                        <div className="msg-info">
-                            <img src={msg.sId === userData.id ? userData.avatar : chatUser?.userData?.avatar} alt="User" />
-                            <p>{msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleTimeString() : "Time N/A"}</p>
-                        </div>
+                    <div 
+                        key={index} 
+                        className={`chatbox__message ${
+                            msg.sId === userData.id ? 'sent' : 'received'
+                        }`}
+                    >
                         {msg.image ? (
-                            <img src={msg.image} alt="Shared" className="shared-image" />
+                            <div className="chatbox__image-message">
+                                <img 
+                                    src={msg.image} 
+                                    alt="Shared" 
+                                    onClick={() => window.open(msg.image, '_blank')}
+                                />
+                                <span className="chatbox__message-time">
+                                    {formatTime(msg.createdAt)}
+                                </span>
+                            </div>
                         ) : (
-                            <p className="msg">{msg.text}</p>
+                            <div className="chatbox__text-message">
+                                <p>{msg.text}</p>
+                                <span className="chatbox__message-time">
+                                    {formatTime(msg.createdAt)}
+                                </span>
+                            </div>
                         )}
                     </div>
                 ))}
             </div>
 
-            <form className="chat-input" onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-            }}>
-                <input
-                    type="text"
-                    placeholder="Send a message"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                />
-                <input
-                    type="file"
-                    id="image"
-                    accept="image/png, image/jpeg"
-                    hidden
-                    onChange={handleImageUpload}
-                />
-                <label htmlFor="image" className="upload-btn">
-                    <img src={assets.gallery_icon} alt="Upload" />
-                </label>
-                <button type="submit" className="send-btn">
-                    <img src={assets.send_button} alt="Send" />
+            <form className="chatbox__input-area" onSubmit={handleSendMessage}>
+                <div className="chatbox__input-container">
+                    <img 
+                        src={assets.emoji_icon} 
+                        alt="Emoji" 
+                        onClick={() => setShowEmoji(!showEmoji)}
+                    />
+                    <input
+                        type="text"
+                        placeholder="Type a message..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        ref={inputRef}
+                    />
+                    <label className="chatbox__file-input">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                        />
+                        <img src={assets.attachment_icon} alt="Attach" />
+                    </label>
+                </div>
+                <button 
+                    type="submit" 
+                    disabled={!input.trim() && !isUploading}
+                    className="chatbox__send-btn"
+                >
+                    <img src={assets.send_icon} alt="Send" />
                 </button>
             </form>
+
+            {showEmoji && (
+                <div className="chatbox__emoji-picker">
+                    <EmojiPicker
+                        onEmojiClick={handleEmojiClick}
+                        width={300}
+                        height={400}
+                    />
+                </div>
+            )}
         </div>
     );
 };
