@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../context/AppContext";
 import { debounce } from "../../utils/helpers";
 import { searchUsers, addNewChat } from "../../services/chatService";
-import { formatTime } from "../../utils/helpers";
+import { formatChatTime } from "../../utils/dateUtils";
 import { toast } from "react-toastify";
 
 const LeftSidebar = () => {
@@ -169,7 +169,7 @@ const LeftSidebar = () => {
                                     </div>
                                     {chat.lastMessageTime && (
                                         <span className="left-sidebar__chat-time">
-                                            {formatTime(chat.lastMessageTime)}
+                                            {formatChatTime(chat.lastMessageTime)}
                                         </span>
                                     )}
                                     {!chat.messageSeen && (

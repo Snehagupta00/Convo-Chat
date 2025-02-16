@@ -101,9 +101,8 @@ const ChatBox = () => {
                     />
                     <div>
                         <h3>{chatUser.userData?.name}</h3>
-                        <span className={`chatbox__status ${
-                            chatUser.userData?.isOnline ? 'online' : 'offline'
-                        }`}>
+                        <span className={`chatbox__status ${chatUser.userData?.isOnline ? 'online' : 'offline'
+                            }`}>
                             {chatUser.userData?.isOnline ? 'Online' : 'Offline'}
                         </span>
                     </div>
@@ -118,9 +117,8 @@ const ChatBox = () => {
                 {messages.map((msg, index) => (
                     <div
                         key={index}
-                        className={`chatbox__message ${
-                            msg.sId === userData.id ? 'sent' : 'received'
-                        }`}
+                        className={`chatbox__message ${msg.sId === userData.id ? 'sent' : 'received'
+                            }`}
                     >
                         {msg.image ? (
                             <div className="chatbox__image-message">

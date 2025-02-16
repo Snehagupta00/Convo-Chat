@@ -7,17 +7,20 @@
     flex-direction: column;
     position: relative;
     overflow-y: auto;
+
 }
 
 .right-sidebar--empty {
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
+    flex-direction: column;
 }
 
 .right-sidebar__profile {
     text-align: center;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem; 
 }
 
 .right-sidebar__avatar {
@@ -56,6 +59,7 @@
 
 .right-sidebar__section {
     margin-top: 1.5rem;
+    flex: 1;
 }
 
 .right-sidebar__section h4 {
@@ -97,7 +101,6 @@
 }
 
 .right-sidebar__logout-btn {
-    margin-top: auto;
     background: #e74c3c;
     color: white;
     border: none;
@@ -106,13 +109,15 @@
     cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.2s;
+    margin-top: 1rem;
+    align-self: center;
 }
 
 .right-sidebar__logout-btn:hover {
     background: #c0392b;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
     .right-sidebar {
         display: none;
     }

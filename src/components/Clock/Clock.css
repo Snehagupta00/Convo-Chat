@@ -1,0 +1,15 @@
+.clock {
+    display: inline-flex;
+    align-items: center;
+    background: #001f3f;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.clock__time {
+    font-family: monospace;
+    color: #00ff88;
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+}

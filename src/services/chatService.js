@@ -1,13 +1,13 @@
-import { 
-    collection, 
-    query, 
-    where, 
-    getDocs, 
-    doc, 
-    getDoc, 
-    setDoc, 
-    updateDoc, 
-    arrayUnion 
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { toast } from 'react-toastify';
@@ -21,7 +21,7 @@ export const searchUsers = async (searchTerm, currentUserId) => {
     try {
         const usersRef = collection(db, "users");
         const q = query(
-            usersRef, 
+            usersRef,
             where("username", ">=", searchTerm.toLowerCase()),
             where("username", "<=", searchTerm.toLowerCase() + '\uf8ff')
         );

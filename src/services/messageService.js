@@ -1,8 +1,8 @@
-import { 
-    doc, 
-    updateDoc, 
-    arrayUnion, 
-    getDoc 
+import {
+    doc,
+    updateDoc,
+    arrayUnion,
+    getDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { compressImage } from '../utils/imageUtils';
@@ -23,7 +23,7 @@ export const sendMessage = async (text, messageId, senderId) => {
 export const handleImageUpload = async (file, messageId, senderId) => {
     const compressedImage = await compressImage(file);
     const messageRef = doc(db, "messages", messageId);
-    
+
     await updateDoc(messageRef, {
         messages: arrayUnion({
             sId: senderId,
@@ -37,7 +37,7 @@ export const handleImageUpload = async (file, messageId, senderId) => {
 
 export const updateLastMessage = async (lastMessage, messageId, senderId, receiverId) => {
     const userIDs = [senderId, receiverId];
-    
+
     for (const id of userIDs) {
         const userChatsRef = doc(db, "chats", id);
         const userChatsSnapshot = await getDoc(userChatsRef);

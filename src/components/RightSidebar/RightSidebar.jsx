@@ -57,14 +57,14 @@ const RightSidebar = () => {
     return (
         <div className='right-sidebar'>
             <div className="right-sidebar__profile">
-                <img 
-                    src={chatUser?.userData?.avatar || assets.avatar_placeholder} 
-                    alt="Profile" 
+                <img
+                    src={chatUser?.userData?.avatar || assets.avatar_placeholder}
+                    alt="Profile"
                     className="right-sidebar__avatar"
                 />
                 <h3 className="right-sidebar__name">
-                    {chatUser?.userData?.lastSeen && 
-                     Date.now() - chatUser.userData.lastSeen <= 300000 ? (
+                    {chatUser?.userData?.lastSeen &&
+                        Date.now() - chatUser.userData.lastSeen <= 300000 ? (
                         <img className='right-sidebar__status-dot' src={assets.green_dot} alt="Online" />
                     ) : null}
                     {chatUser?.userData?.name || "Unknown User"}
@@ -73,8 +73,8 @@ const RightSidebar = () => {
                     {chatUser?.userData?.bio || "No bio available"}
                 </p>
                 <p className="right-sidebar__last-seen">
-                    {chatUser?.userData?.lastSeen ? 
-                        formatLastSeen(chatUser.userData.lastSeen) : 
+                    {chatUser?.userData?.lastSeen ?
+                        formatLastSeen(chatUser.userData.lastSeen) :
                         "Last seen unavailable"}
                 </p>
             </div>

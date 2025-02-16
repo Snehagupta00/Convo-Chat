@@ -50,10 +50,10 @@ export const compressImage = async (file, options = {}) => {
 
                 // First compression attempt
                 let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                
+
                 // Check if size is still too large
                 let currentSize = getBase64Size(compressedDataUrl);
-                
+
                 // Further compress if needed
                 if (currentSize > maxSizeKB * 1024) {
                     let adjustedQuality = quality;
@@ -84,8 +84,8 @@ export const compressImage = async (file, options = {}) => {
  * @returns {number} - Size in bytes
  */
 const getBase64Size = (base64String) => {
-    const padding = base64String.endsWith('==') ? 2 : 
-                   base64String.endsWith('=') ? 1 : 0;
+    const padding = base64String.endsWith('==') ? 2 :
+        base64String.endsWith('=') ? 1 : 0;
     const base64Length = base64String.substr(base64String.indexOf(',') + 1).length;
     return (base64Length * 0.75) - padding;
 };
@@ -126,11 +126,11 @@ export const dataUrlToBlob = (dataUrl) => {
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    
+
     while (n--) {
         u8arr[n] = bstr.charCodeAt(n);
     }
-    
+
     return new Blob([u8arr], { type: mime });
 };
 
@@ -143,7 +143,7 @@ export const getImageDimensions = (file) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = URL.createObjectURL(file);
-        
+
         img.onload = () => {
             URL.revokeObjectURL(img.src);
             resolve({
@@ -151,7 +151,7 @@ export const getImageDimensions = (file) => {
                 height: img.height
             });
         };
-        
+
         img.onerror = () => {
             URL.revokeObjectURL(img.src);
             reject(new Error('Failed to load image'));
@@ -171,7 +171,7 @@ export const fixImageOrientation = async (file) => {
 
         reader.onload = (event) => {
             const view = new DataView(event.target.result);
-            
+
             // Check if image has EXIF data
             if (view.getUint16(0, false) !== 0xFFD8) {
                 // Not a JPEG
@@ -187,7 +187,7 @@ export const fixImageOrientation = async (file) => {
                     if (view.getUint32(offset + 2, false) === 0x45786966) {
                         const little = view.getUint16(offset + 8, false) === 0x4949;
                         offset += 10;
-                        
+
                         // Find orientation tag
                         for (let i = 0; i < view.getUint16(offset, little); i++) {
                             if (view.getUint16(offset + 2 + 12 * i, little) === 0x0112) {

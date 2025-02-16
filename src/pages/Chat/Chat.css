@@ -1,6 +1,6 @@
 .chat {
     min-height: 100vh;
-    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), 
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)),
                 url('/chat-background.jpg');
     background-size: cover;
     background-position: center;
@@ -33,11 +33,23 @@
     .chat {
         padding: 0;
     }
-    
+
     .chat-container {
         height: 100vh;
         width: 100%;
         border-radius: 0;
         grid-template-columns: 1fr;
+    }
+
+    .left-sidebar, .chat-box, .right-sidebar {
+        display: none;
+    }
+
+    .left-sidebar {
+        display: block;
+    }
+
+    .chat-box.active {
+        display: block;
     }
 }

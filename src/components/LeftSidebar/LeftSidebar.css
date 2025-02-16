@@ -6,6 +6,7 @@
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     width: 350px;
     position: relative;
+    transition: transform 0.3s ease;
 }
 
 .left-sidebar__header {
@@ -87,6 +88,8 @@
     flex: 1;
     overflow-y: auto;
     padding-top: 0.5rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .left-sidebar__search-results,
@@ -237,6 +240,7 @@
         top: 0;
         left: 0;
         z-index: 1000;
+        transform: translateX(-100%);
     }
 
     .left-sidebar.hidden {

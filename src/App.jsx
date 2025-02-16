@@ -11,10 +11,12 @@ import { auth, db } from './config/firebase';
 import { AppContext } from './context/AppContext';
 import ImageViewer from './components/ImageViewer/ImageViewer';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import "./App.css";
 
 const App = () => {
     const navigate = useNavigate();
     const { setUserData, userData } = useContext(AppContext);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -48,7 +50,6 @@ const App = () => {
 
         return () => unsubscribe();
     }, [navigate, setUserData]);
-    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const timeout = setTimeout(() => setIsLoading(false), 1000);
