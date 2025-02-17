@@ -13,7 +13,9 @@ import {
     ImagePlus,
     ChevronLeft,
     Search,
-    MoreVertical
+    MoreVertical,
+    Phone,
+    Video
 } from 'lucide-react';
 
 const ChatBox = () => {
@@ -31,15 +33,20 @@ const ChatBox = () => {
     const [input, setInput] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
     const chatContainerRef = useRef(null);
     const inputRef = useRef(null);
     const emojiPickerRef = useRef(null);
     const fileInputRef = useRef(null);
+    const optionsRef = useRef(null);
 
     // Scroll to bottom for latest messages
     const scrollToBottom = () => {
         if (chatContainerRef.current) {
-            chatContainerRef.current.scrollToBottom = 0;
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     };
 
@@ -54,11 +61,23 @@ const ChatBox = () => {
             if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
                 setShowEmoji(false);
             }
+            if (optionsRef.current && !optionsRef.current.contains(event.target)) {
+                setShowOptions(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Reset states when chat user changes
+    useEffect(() => {
+        setInput("");
+        setShowEmoji(false);
+        setShowOptions(false);
+        setIsSearching(false);
+        setSearchQuery("");
+    }, [chatUser]);
 
     // Handle emoji selection
     const handleEmojiClick = (emojiData) => {
@@ -96,9 +115,9 @@ const ChatBox = () => {
                 id: Date.now(),
                 sId: userData.id,
                 image: imageUrl,
-                createdAt: new Date(),
+                createdAt: new Date().toISOString(),
             };
-            setMessages(prevMessages => [newMessage, ...prevMessages]);
+            setMessages(prevMessages => [...prevMessages, newMessage]);
 
             await updateLastMessage(
                 "📷 Image",
@@ -107,6 +126,7 @@ const ChatBox = () => {
                 chatUser.userData.id
             );
             toast.success("Image sent successfully!");
+            scrollToBottom();
         } catch (error) {
             console.error("Error uploading image:", error);
             toast.error(error.message || "Failed to send image. Please try again.");
@@ -146,9 +166,9 @@ const ChatBox = () => {
                 id: Date.now(),
                 sId: userData.id,
                 text: trimmedInput,
-                createdAt: new Date(),
+                createdAt: new Date().toISOString(),
             };
-            setMessages(prevMessages => [newMessage, ...prevMessages]);
+            setMessages(prevMessages => [...prevMessages, newMessage]);
 
             await sendMessage(trimmedInput, messagesId, userData.id);
             await updateLastMessage(
@@ -159,29 +179,35 @@ const ChatBox = () => {
             );
             setInput("");
             setShowEmoji(false);
+            scrollToBottom();
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error(error.message || "Failed to send message. Please try again.");
-            // Remove the optimistically added message on error
             setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newMessage.id));
         }
     };
-
-    // Handle Back Button Click on Mobile
     const handleBackClick = () => {
         if (isMobile) {
             setChatVisible(false);
             setShowEmoji(false);
+            setShowOptions(false);
         }
     };
-
-    // Check if user is online
+    const handleSearchToggle = () => {
+        setIsSearching(!isSearching);
+        if (!isSearching) {
+            setSearchQuery("");
+        }
+    };
+    const filteredMessages = searchQuery
+        ? messages.filter(msg =>
+            msg.text?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : messages;
     const isUserOnline = (lastSeen) => {
         if (!lastSeen) return false;
-        return Date.now() - lastSeen < 5 * 60 * 1000;
+        return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
     };
-
-    // Welcome screen when no chat is selected
     if (!chatUser) {
         return (
             <div className={`chatbox-welcome ${isMobile && !chatVisible ? "hidden" : ""}`}>
@@ -217,14 +243,48 @@ const ChatBox = () => {
                     </div>
                 </div>
                 <div className="chatbox__actions">
-                    <Search className="chatbox__action-icon" size={20} />
-                    <MoreVertical className="chatbox__action-icon" size={20} />
+                    {!isSearching ? (
+                        <>
+                            <Phone className="chatbox__action-icon" />
+                            <Video className="chatbox__action-icon" />
+                            <Search
+                                className="chatbox__action-icon"
+                                size={20}
+                                onClick={handleSearchToggle}
+                            />
+                            <div className="chatbox__more-options" ref={optionsRef}>
+                                <MoreVertical
+                                    className="chatbox__action-icon"
+                                    size={20}
+                                    onClick={() => setShowOptions(!showOptions)}
+                                />
+                                {showOptions && (
+                                    <div className="chatbox__options-menu">
+                                        <button>View Profile</button>
+                                        <button>Clear Chat</button>
+                                        <button>Block User</button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="chatbox__search-bar">
+                            <input
+                                type="text"
+                                placeholder="Search in conversation..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                            />
+                            <button onClick={handleSearchToggle}>Cancel</button>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Chat Messages - Now in reverse order */}
+            {/* Chat Messages */}
             <div className="chatbox__messages" ref={chatContainerRef}>
-                {[...messages].reverse().map((msg, index) => (
+                {filteredMessages.map((msg, index) => (
                     <div
                         key={msg.id || index}
                         className={`chatbox__message ${msg.sId === userData.id ? "sent" : "received"}`}
@@ -277,7 +337,6 @@ const ChatBox = () => {
                                 </div>
                             )}
                         </div>
-
                     </div>
                     <input
                         type="text"
@@ -307,7 +366,7 @@ const ChatBox = () => {
                     disabled={!input.trim() || isUploading}
                     className="chatbox__send-btn"
                 >
-                    <Send size={20} />
+                    <Send size={15} />
                 </button>
             </form>
         </div>

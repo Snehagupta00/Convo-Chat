@@ -1,10 +1,12 @@
+
+/* Chat container */
 .chat {
     min-height: 100vh;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f0f2f5;
+    background: black;
     padding: 20px;
 }
 
@@ -23,31 +25,289 @@
     position: relative;
 }
 
+/* Chat sections */
 .chat-section {
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
+    background: #ffffff;
     height: 100%;
-    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .left-section {
-    grid-column: 1;
+    border-right: 1px solid #e0e0e0;
 }
 
 .main-section {
-    grid-column: 2;
+    background: #ffffff;
 }
 
 .right-section {
-    grid-column: 3;
+    border-left: 1px solid #e0e0e0;
 }
 
-/* Tablet View */
-@media (max-width: 1200px) {
+/* Messages container */
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    scroll-behavior: smooth;
+}
+
+.message {
+    max-width: 70%;
+    margin: 8px 0;
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s ease-out;
+}
+
+.user-message {
+    align-self: flex-end;
+}
+
+.other-message {
+    align-self: flex-start;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: #e3f2fd;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.user-message .message-content {
+    background: #0084ff;
+    color: white;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-message .message-time {
+    color: #fff;
+    opacity: 0.8;
+}
+
+/* Date separator */
+.date-separator {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    color: #666;
+    font-size: 0.875rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.date-separator::before,
+.date-separator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 25%;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.date-separator::before {
+    left: 10%;
+}
+
+.date-separator::after {
+    right: 10%;
+}
+
+/* Chat header */
+.chat-header {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    height: 70px;
+}
+
+.back-button {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    margin-right: 8px;
+}
+
+.chat-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.chat-user-details h3 {
+    font-size: 1rem;
+    color: #333;
+}
+
+.last-seen {
+    font-size: 0.813rem;
+    color: #666;
+}
+
+/* Message input */
+.message-input {
+    padding: 16px;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.message-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 24px;
+    outline: none;
+    font-size: 0.938rem;
+    transition: border-color 0.3s;
+}
+
+.message-input input:focus {
+    border-color: #0084ff;
+}
+
+.send-button {
+    background: #0084ff;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s;
+}
+
+.send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Scrollbar styling */
+.messages-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Empty state */
+.chatbox-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 1.125rem;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Read receipts */
+.message .fa-check {
+    font-size: 0.75rem;
+    margin-left: 4px;
+}
+
+.message .fa-check.read {
+    color: #34b7f1;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .chat {
+        padding: 0;
+    }
+
+    .chat-container {
+        display: block;
+        height: 100vh;
+        width: 100vw;
+    }
+
+    .chat-section {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform: translateX(0);
+    }
+
+    .chat-section.hidden {
+        transform: translateX(-100%);
+    }
+
+    .main-section.hidden {
+        transform: translateX(100%);
+    }
+
+    .left-section {
+        z-index: 1;
+    }
+
+    .main-section {
+        z-index: 2;
+        background: #fff;
+    }
+
+    .right-section {
+        display: none;
+    }
+
+    .back-button {
+        display: block;
+    }
+
+    .message {
+        max-width: 85%;
+    }
+}
+
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1200px) {
     .chat-container {
         grid-template-columns: 300px 1fr;
-        gap: 8px;
     }
 
     .right-section {
@@ -55,66 +315,91 @@
     }
 }
 
-/* Mobile View */
-@media (max-width: 768px) {
-    .chat {
-        padding: 0;
-    }
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
-    .chat-container {
-        height: 100vh;
-        width: 100%;
-        border-radius: 0;
-        padding: 0;
-        gap: 0;
-        display: block;
-    }
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
 
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .chat,
+    .chat-container,
     .chat-section {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
+        height: -webkit-fill-available;
     }
 
-    .hidden {
-        display: none !important;
-    }
-    .left-section,
-    .main-section {
-        transition: transform 0.3s ease-in-out;
-    }
-
-    .left-section {
-        transform: translateX(0);
-    }
-
-    .main-section {
-        transform: translateX(0);
-    }
-
-    .left-section.hidden {
-        transform: translateX(-100%);
-    }
-
-    .main-section.hidden {
-        transform: translateX(100%);
+    .message-input {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
     }
 }
-.chat .loading-spinner {
+
+/* Touch device optimizations */
+@media (hover: none) {
+    .chat-section {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .message-input input {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* Performance optimizations */
+.chat-section {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Loading spinner */
+.loading-spinner {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    z-index: 1000;
 }
+
+/* Prevent text selection during transitions */
 .chat-section {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    user-select: none;
+    -webkit-user-select: none;
 }
-@supports (-webkit-touch-callout: none) {
-    .chat-container {
-        height: -webkit-fill-available;
-    }
+
+/* Active states */
+.message-content:active {
+    opacity: 0.8;
+}
+
+.send-button:active {
+    transform: scale(0.95);
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    visibility: hidden !important;
+}
+
+/* Focus styles for accessibility */
+.message-input input:focus,
+.send-button:focus {
+    outline: 2px solid #0084ff;
+    outline-offset: 2px;
+}
+
+/* Remove outline for mouse users */
+.message-input input:focus:not(:focus-visible),
+.send-button:focus:not(:focus-visible) {
+    outline: none;
 }
